@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Setup – Apple TV Gestures</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: #f2f2f7;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 28px;
+    width: 100%;
+    max-width: 390px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  }
+  .header {
+    background: linear-gradient(145deg, #1c1c1e 0%, #2c2c2e 100%);
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 6px 14px;
+    margin-bottom: 16px;
+  }
+  .step-num {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0a84ff;
+    letter-spacing: 0.02em;
+  }
+  .step-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.02em;
+  }
+  .title {
+    font-size: 34px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+  .subtitle {
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 6px;
+    font-weight: 400;
+  }
+  .visual {
+    background: #1c1c1e;
+    padding: 36px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .distance-viz {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  .device-icon {
+    font-size: 36px;
+    filter: drop-shadow(0 4px 12px rgba(0,132,255,0.4));
+  }
+  .distance-line {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, #0a84ff, rgba(10,132,255,0.3));
+    border-radius: 2px;
+    position: relative;
+  }
+  .distance-line::after {
+    content: '3 m';
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    font-weight: 600;
+    color: #0a84ff;
+    background: #1c1c1e;
+    padding: 0 6px;
+  }
+  .person-icon { font-size: 42px; }
+  .body { padding: 28px; }
+  .req-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 0;
+    border-bottom: 1px solid #f2f2f7;
+  }
+  .req-item:last-child { border-bottom: none; }
+  .req-icon {
+    width: 40px; height: 40px;
+    border-radius: 12px;
+    background: #e8f3ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .req-text { flex: 1; }
+  .req-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1c1c1e;
+    margin-bottom: 2px;
+  }
+  .req-desc {
+    font-size: 13px;
+    color: #8e8e93;
+    line-height: 1.4;
+  }
+  .pill {
+    display: inline-block;
+    background: #0a84ff;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="step-badge">
+      <span class="step-num">01</span>
+      <span class="step-label">of 07</span>
+    </div>
+    <div class="title">Setup</div>
+    <div class="subtitle">Before you start</div>
+  </div>
+  <div class="visual">
+    <div class="distance-viz">
+      <div class="device-icon">📱</div>
+      <div class="distance-line"></div>
+      <div class="person-icon">🧍</div>
+    </div>
+  </div>
+  <div class="body">
+    <div class="req-item">
+      <div class="req-icon">📶</div>
+      <div class="req-text">
+        <div class="req-title">Same Wi-Fi Network</div>
+        <div class="req-desc">Your phone must be connected to the same network as Apple TV.</div>
+      </div>
+    </div>
+    <div class="req-item">
+      <div class="req-icon">📍</div>
+      <div class="req-text">
+        <div class="req-title">Stay Close</div>
+        <div class="req-desc">Remain within range of your iPhone camera.</div>
+        <span class="pill">within 3 meters · 10 feet</span>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

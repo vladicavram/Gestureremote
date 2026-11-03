@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swipe Down – Apple TV Gestures</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: #f2f2f7;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 28px;
+    width: 100%;
+    max-width: 390px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  }
+  .header {
+    background: linear-gradient(145deg, #2a1a10 0%, #8a4a1a 100%);
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '↓';
+    position: absolute;
+    right: 28px; top: -10px;
+    font-size: 100px;
+    opacity: 0.06;
+    color: #fff;
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    margin-bottom: 16px;
+  }
+  .step-num { font-size: 13px; font-weight: 700; color: #ff9f0a; }
+  .step-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); }
+  .title { font-size: 30px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .subtitle { font-size: 15px; color: rgba(255,255,255,0.55); margin-top: 6px; }
+  .visual {
+    background: linear-gradient(180deg, #fff8e5 0%, #fffcf0 100%);
+    padding: 48px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .swipe-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .gesture-circle {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 8px 32px rgba(255,159,10,0.3), 0 0 0 2px rgba(255,159,10,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    animation: slideDown 1.8s ease-in-out infinite;
+  }
+  @keyframes slideDown {
+    0%   { transform: translateY(-20px); opacity: 0.3; }
+    60%  { transform: translateY(20px); opacity: 1; }
+    100% { transform: translateY(20px); opacity: 0; }
+  }
+  .swipe-arrow {
+    font-size: 40px;
+    color: #ff9f0a;
+    animation: arrowPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes arrowPulse {
+    0%   { opacity: 0; transform: translateY(-8px); }
+    50%  { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(8px); }
+  }
+  .label { font-size: 13px; font-weight: 600; color: #ff9f0a; letter-spacing: 0.04em; text-transform: uppercase; }
+  .body { padding: 28px; }
+  .action-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff8e5;
+    border-radius: 16px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
+  }
+  .action-icon { font-size: 22px; }
+  .action-label { font-size: 16px; font-weight: 600; color: #ff9f0a; }
+  .description { font-size: 14px; color: #8e8e93; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="step-badge">
+      <span class="step-num">07</span>
+      <span class="step-label">of 07</span>
+    </div>
+    <div class="title">Open Palm Move Down</div>
+    <div class="subtitle">Swipe Down</div>
+  </div>
+  <div class="visual">
+    <div class="swipe-col">
+      <div class="gesture-circle">🖐️</div>
+      <div class="swipe-arrow">↓</div>
+    </div>
+    <div class="label">Move open palm downward</div>
+  </div>
+  <div class="body">
+    <div class="action-tag">
+      <span class="action-icon">⬇️</span>
+      <span class="action-label">Swipe Down</span>
+    </div>
+    <p class="description">Hold out an open palm and move it downward to scroll or swipe down on the Apple TV interface.</p>
+  </div>
+</div>
+</body>
+</html>

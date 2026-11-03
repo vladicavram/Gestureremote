@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Summary – Apple TV Gestures</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: #f2f2f7;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 28px;
+    width: 100%;
+    max-width: 390px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  }
+  .header {
+    background: linear-gradient(145deg, #1c1c1e 0%, #3a3a3c 100%);
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '✦';
+    position: absolute;
+    right: 24px; top: 16px;
+    font-size: 72px;
+    opacity: 0.06;
+    color: #fff;
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 20px;
+    padding: 6px 14px;
+    margin-bottom: 16px;
+  }
+  .step-num { font-size: 13px; font-weight: 700; color: #ffd60a; }
+  .step-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5); }
+  .title { font-size: 34px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .subtitle { font-size: 15px; color: rgba(255,255,255,0.5); margin-top: 6px; }
+  .body { padding: 24px 28px 32px; }
+  .gesture-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #f2f2f7;
+  }
+  .gesture-row:last-child { border-bottom: none; }
+  .icon-circle {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .text { flex: 1; }
+  .gesture-name { font-size: 14px; font-weight: 600; color: #1c1c1e; }
+  .gesture-action { font-size: 13px; color: #8e8e93; margin-top: 1px; }
+  .arrow-badge {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .bg-blue { background: #e8f3ff; }
+  .bg-red { background: #fff0ef; }
+  .bg-green { background: #edfff2; }
+  .bg-purple { background: #f5eeff; }
+  .bg-cyan { background: #e5f6ff; }
+  .bg-orange { background: #fff8e5; }
+  .col-blue { color: #0a84ff; }
+  .col-red { color: #ff453a; }
+  .col-green { color: #30d158; }
+  .col-purple { color: #bf5af2; }
+  .col-cyan { color: #32ade6; }
+  .col-orange { color: #ff9f0a; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="step-badge">
+      <span class="step-num">★</span>
+      <span class="step-label">Quick Reference</span>
+    </div>
+    <div class="title">Summary</div>
+    <div class="subtitle">All gestures at a glance</div>
+  </div>
+  <div class="body">
+    <div class="gesture-row">
+      <div class="icon-circle bg-blue" style="font-size:28px;">👍</div>
+      <div class="text">
+        <div class="gesture-name">Thumbs Up</div>
+        <div class="gesture-action">Play / Stop and Select</div>
+      </div>
+      <div class="arrow-badge bg-blue col-blue">▶</div>
+    </div>
+    <div class="gesture-row">
+      <div class="icon-circle bg-red" style="font-size:28px;">👎</div>
+      <div class="text">
+        <div class="gesture-name">Thumbs Down</div>
+        <div class="gesture-action">Back</div>
+      </div>
+      <div class="arrow-badge bg-red col-red">←</div>
+    </div>
+    <div class="gesture-row">
+      <div class="icon-circle bg-green" style="font-size:28px;">🖐️</div>
+      <div class="text">
+        <div class="gesture-name">Open Palm → Left</div>
+        <div class="gesture-action">Swipe Left</div>
+      </div>
+      <div class="arrow-badge bg-green col-green">←</div>
+    </div>
+    <div class="gesture-row">
+      <div class="icon-circle bg-purple" style="font-size:28px;">🖐️</div>
+      <div class="text">
+        <div class="gesture-name">Open Palm → Right</div>
+        <div class="gesture-action">Swipe Right</div>
+      </div>
+      <div class="arrow-badge bg-purple col-purple">→</div>
+    </div>
+    <div class="gesture-row">
+      <div class="icon-circle bg-cyan" style="font-size:28px;">🖐️</div>
+      <div class="text">
+        <div class="gesture-name">Open Palm → Up</div>
+        <div class="gesture-action">Swipe Up</div>
+      </div>
+      <div class="arrow-badge bg-cyan col-cyan">↑</div>
+    </div>
+    <div class="gesture-row">
+      <div class="icon-circle bg-orange" style="font-size:28px;">🖐️</div>
+      <div class="text">
+        <div class="gesture-name">Open Palm → Down</div>
+        <div class="gesture-action">Swipe Down</div>
+      </div>
+      <div class="arrow-badge bg-orange col-orange">↓</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

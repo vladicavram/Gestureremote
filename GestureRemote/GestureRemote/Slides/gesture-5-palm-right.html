@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swipe Right – Apple TV Gestures</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: #f2f2f7;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 28px;
+    width: 100%;
+    max-width: 390px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  }
+  .header {
+    background: linear-gradient(145deg, #2a1a3a 0%, #5e3a8a 100%);
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '→';
+    position: absolute;
+    left: 24px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 80px;
+    opacity: 0.07;
+    color: #fff;
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    margin-bottom: 16px;
+  }
+  .step-num { font-size: 13px; font-weight: 700; color: #bf5af2; }
+  .step-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); }
+  .title { font-size: 30px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .subtitle { font-size: 15px; color: rgba(255,255,255,0.55); margin-top: 6px; }
+  .visual {
+    background: linear-gradient(180deg, #f5eeff 0%, #faf5ff 100%);
+    padding: 48px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .swipe-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  .gesture-circle {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 8px 32px rgba(191,90,242,0.25), 0 0 0 2px rgba(191,90,242,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 64px;
+    animation: slideRight 1.8s ease-in-out infinite;
+  }
+  @keyframes slideRight {
+    0%   { transform: translateX(-20px); opacity: 0.3; }
+    60%  { transform: translateX(20px); opacity: 1; }
+    100% { transform: translateX(20px); opacity: 0; }
+  }
+  .swipe-arrow {
+    font-size: 40px;
+    color: #bf5af2;
+    animation: arrowPulse 1.8s ease-in-out infinite;
+    margin-left: 12px;
+  }
+  @keyframes arrowPulse {
+    0%   { opacity: 0; transform: translateX(-8px); }
+    50%  { opacity: 1; transform: translateX(0); }
+    100% { opacity: 0; transform: translateX(8px); }
+  }
+  .label { font-size: 13px; font-weight: 600; color: #bf5af2; letter-spacing: 0.04em; text-transform: uppercase; }
+  .body { padding: 28px; }
+  .action-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f5eeff;
+    border-radius: 16px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
+  }
+  .action-icon { font-size: 22px; }
+  .action-label { font-size: 16px; font-weight: 600; color: #bf5af2; }
+  .description { font-size: 14px; color: #8e8e93; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="step-badge">
+      <span class="step-num">05</span>
+      <span class="step-label">of 07</span>
+    </div>
+    <div class="title">Open Palm Move Right</div>
+    <div class="subtitle">Swipe Right</div>
+  </div>
+  <div class="visual">
+    <div class="swipe-row">
+      <div class="gesture-circle">🖐️</div>
+      <div class="swipe-arrow">→</div>
+    </div>
+    <div class="label">Move open palm rightward</div>
+  </div>
+  <div class="body">
+    <div class="action-tag">
+      <span class="action-icon">▶️</span>
+      <span class="action-label">Swipe Right</span>
+    </div>
+    <p class="description">Hold out an open palm and move it to the right to swipe right through content on screen.</p>
+  </div>
+</div>
+</body>
+</html>

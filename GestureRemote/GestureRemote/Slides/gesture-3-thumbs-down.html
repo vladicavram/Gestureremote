@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thumbs Down – Apple TV Gestures</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: #f2f2f7;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 28px;
+    width: 100%;
+    max-width: 390px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  }
+  .header {
+    background: linear-gradient(145deg, #2c1010 0%, #5a1f1f 100%);
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -40px; left: -40px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    margin-bottom: 16px;
+  }
+  .step-num { font-size: 13px; font-weight: 700; color: #ff453a; }
+  .step-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); }
+  .title { font-size: 34px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .subtitle { font-size: 15px; color: rgba(255,255,255,0.55); margin-top: 6px; }
+  .visual {
+    background: linear-gradient(180deg, #fff0ef 0%, #fff5f5 100%);
+    padding: 48px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .gesture-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 8px 32px rgba(255,69,58,0.25), 0 0 0 2px rgba(255,69,58,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(255,69,58,0.25), 0 0 0 2px rgba(255,69,58,0.15); }
+    50% { transform: scale(1.04); box-shadow: 0 12px 40px rgba(255,69,58,0.35), 0 0 0 6px rgba(255,69,58,0.1); }
+  }
+  .arrow-hint {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ff453a;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .body { padding: 28px; }
+  .action-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff0ef;
+    border-radius: 16px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
+    width: 100%;
+  }
+  .action-icon { font-size: 22px; }
+  .action-label { font-size: 16px; font-weight: 600; color: #ff453a; }
+  .description { font-size: 14px; color: #8e8e93; line-height: 1.6; padding: 0 2px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="step-badge">
+      <span class="step-num">03</span>
+      <span class="step-label">of 07</span>
+    </div>
+    <div class="title">Thumbs Down</div>
+    <div class="subtitle">Back</div>
+  </div>
+  <div class="visual">
+    <div class="gesture-circle">👎</div>
+    <div class="arrow-hint">↓ Point thumb downward</div>
+  </div>
+  <div class="body">
+    <div class="action-tag">
+      <span class="action-icon">←</span>
+      <span class="action-label">Go Back</span>
+    </div>
+    <p class="description">Point your thumb down to navigate back to the previous screen or menu.</p>
+  </div>
+</div>
+</body>
+</html>

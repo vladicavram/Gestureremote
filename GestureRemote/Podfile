@@ -1,0 +1,5 @@
+platform :ios, '17.0'
+
+target 'GestureRemote' do
+  use_frameworks! :linkage => :dynamic
+end

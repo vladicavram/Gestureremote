@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thumbs Up – Apple TV Gestures</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: #f2f2f7;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 28px;
+    width: 100%;
+    max-width: 390px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+  }
+  .header {
+    background: linear-gradient(145deg, #003d99 0%, #0a84ff 100%);
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    bottom: -50px; right: -30px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 20px;
+    padding: 6px 14px;
+    margin-bottom: 16px;
+  }
+  .step-num { font-size: 13px; font-weight: 700; color: #fff; }
+  .step-label { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.65); }
+  .title { font-size: 34px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .subtitle { font-size: 15px; color: rgba(255,255,255,0.65); margin-top: 6px; }
+  .visual {
+    background: linear-gradient(180deg, #e8f3ff 0%, #f0f7ff 100%);
+    padding: 48px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+  }
+  .gesture-circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 8px 32px rgba(10,132,255,0.25), 0 0 0 2px rgba(10,132,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(10,132,255,0.25), 0 0 0 2px rgba(10,132,255,0.15); }
+    50% { transform: scale(1.04); box-shadow: 0 12px 40px rgba(10,132,255,0.35), 0 0 0 6px rgba(10,132,255,0.1); }
+  }
+  .arrow-hint {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0a84ff;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .body { padding: 28px; }
+  .action-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #e8f3ff;
+    border-radius: 16px;
+    padding: 12px 18px;
+    margin-bottom: 12px;
+    width: 100%;
+  }
+  .action-icon { font-size: 22px; }
+  .action-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: #0a84ff;
+  }
+  .description {
+    font-size: 14px;
+    color: #8e8e93;
+    line-height: 1.6;
+    padding: 0 2px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="step-badge">
+      <span class="step-num">02</span>
+      <span class="step-label">of 07</span>
+    </div>
+    <div class="title">Thumbs Up</div>
+    <div class="subtitle">Play / Stop and Select</div>
+  </div>
+  <div class="visual">
+    <div class="gesture-circle">👍</div>
+    <div class="arrow-hint">↑ Point thumb upward</div>
+  </div>
+  <div class="body">
+    <div class="action-tag">
+      <span class="action-icon">▶️</span>
+      <span class="action-label">Play / Stop and Select</span>
+    </div>
+    <p class="description">Raise your thumb up to play or stop the current media, or to select the highlighted item on screen.</p>
+  </div>
+</div>
+</body>
+</html>
