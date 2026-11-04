@@ -81,7 +81,7 @@ final class GestureProcessor: ObservableObject {
     // Measured on device: an open palm facing the phone reads 0.6–0.8 at 1 m but only 0.3–0.45 at
     // 2.7–2.9 m (the palm looks squeezed that far away); edge-on stays near 0.
     private let wakeMinFacing: Float = 0.25
-    private let wakeHoldSeconds: TimeInterval = 1.5
+    private let wakeHoldSeconds: TimeInterval = 1.0
     private let wakeStillThreshold: CGFloat = 0.25    // wrist drift allowed, in hand spans
     private let wakeFlickerGrace: TimeInterval = 0.25  // open palm missed this long → start over
     private var wakeStillSince: Date?
@@ -100,8 +100,6 @@ final class GestureProcessor: ObservableObject {
     private var lastWakePalmSeen = Date.distantPast
     private let sleepAfterNoGestureInterval: TimeInterval = 5
     private var palmWakeEnabled = true
-    private var wakeBlockedUntil = Date.distantPast
-    private let wakeBlockSeconds: TimeInterval = 3
     private var thumbsEnabled = true    // off in LiDAR mode: a closing fist read as thumbs-up
     private var lastGestureRecognitionTime = Date.distantPast
     private var sleepMonitorTimer: DispatchSourceTimer?
@@ -197,26 +195,12 @@ final class GestureProcessor: ObservableObject {
         }
     }
 
-    /// LiDAR mode: the open-palm pointer moves the selection continuously (so one-step swipes would
-    /// double up with it), and two quick pinches put gestures to sleep.
+    /// LiDAR mode: the open-palm pointer moves the selection continuously, so one-step swipes would
+    /// double up with it; thumbs are off (pinch selects, hand flip goes back).
     func setLiDARControls(_ enabled: Bool) {
         processingQueue.async { [weak self] in
             self?.pointerHandlesSwipes = enabled
             self?.thumbsEnabled = !enabled      // pinch selects, hand flip goes back
-        }
-    }
-
-    /// Double pinch (LiDAR mode): wake or sleep directly. After a sleep the hand is usually still
-    /// up and open, so palm-hold wake waits until it's lowered (or wakeBlockSeconds pass).
-    func setAwake(_ awake: Bool) {
-        processingQueue.async { [weak self] in
-            guard let self, self.isAwake != awake else { return }
-            if awake {
-                self.wakeRecognition()
-            } else {
-                self.sleepRecognition()
-                self.wakeBlockedUntil = Date().addingTimeInterval(self.wakeBlockSeconds)
-            }
         }
     }
 
@@ -242,7 +226,6 @@ final class GestureProcessor: ObservableObject {
         if pose != nil {
             let now = Date()
             if now.timeIntervalSince(lastHandSeen) > handReacquireGap {
-                wakeBlockedUntil = .distantPast     // hand was lowered: palm wake allowed again
                 onHandAcquired?()
                 forgetPalmSide()        // maybe the other hand: learn its palm side afresh
             }
@@ -258,7 +241,7 @@ final class GestureProcessor: ObservableObject {
 
         currentHandSpan = analysis.handSpan
 
-        if !isAwake && (!palmWakeEnabled || Date() < wakeBlockedUntil) { return }
+        if !isAwake && !palmWakeEnabled { return }
         if !isAwake {
             // Wake: an open palm facing the camera (not edge-on, after CardboardXR), held fairly
             // still for wakeHoldSeconds. Timed rather than counted in frames, so it feels the same

@@ -3,6 +3,7 @@ import Combine
 import CoreImage
 import CoreVideo
 import Foundation
+import QuartzCore
 import simd
 import Vision
 
@@ -82,8 +83,6 @@ final class LiDARHandTracker: ObservableObject {
     var isGestureAwake: () -> Bool = { false }
     /// Called on every pointer step or press, so gestures don't fall asleep while pointing.
     var onActivity: (() -> Void)?
-    /// Two quick pinches while in control: put gestures to sleep. Main queue.
-    var onDoublePinch: (() -> Void)?
 
     private let minControlDistance: Float = 0.25
     private let maxControlDistance: Float = 5.0
@@ -127,7 +126,6 @@ final class LiDARHandTracker: ObservableObject {
     // A lowered, relaxed hand rests with thumb near index, which looks like a pinch. A real one is a
     // quick close from an open hand that's held up, palm toward the phone.
     private let pinchOpenWithin: TimeInterval = 0.8  // stable open this recently before closing
-    private let doublePinchWindow: TimeInterval = 0.6 // two pinches this close = wake / sleep
     // At ~2 m the fingertips jitter on camera and a resting hand's gap flips open/closed every
     // frame (measured); a real pinch holds each state for several frames.
     private let pinchStableOpenFrames = 3
@@ -173,9 +171,6 @@ final class LiDARHandTracker: ObservableObject {
     private var openFrames = 0
     private var closedFrames = 0
     private var pinchArmed = false
-    private var firstPinchTime: TimeInterval?
-    private var userAsleep = false                  // put to sleep by double pinch
-    private var wasAwake = false
     private var lastDropTime: TimeInterval = 0
     private var filterDistance = OneEuroFilter(minCutoff: 3.0, beta: 2)
     private var isPinched = false
@@ -204,11 +199,30 @@ final class LiDARHandTracker: ObservableObject {
 
         queue.async { [weak self] in
             guard let self else { return }
+            let start = CACurrentMediaTime()
             self.handle(frame)
+            self.notePerformance(frameTime: CACurrentMediaTime() - start)
             self.busyLock.lock()
             self.isBusy = false
             self.busyLock.unlock()
         }
+    }
+
+    private var perfFrames = 0
+    private var perfBusy: TimeInterval = 0
+    private var perfSince = CACurrentMediaTime()
+
+    /// Logs processed frames per second and the average time per frame, every 2 s.
+    private func notePerformance(frameTime: TimeInterval) {
+        perfFrames += 1
+        perfBusy += frameTime
+        let now = CACurrentMediaTime()
+        guard now - perfSince >= 2 else { return }
+        print(String(format: "[PERF] %.1f fps, %.0f ms per frame (%@)", Double(perfFrames) / (now - perfSince),
+                     perfBusy / Double(perfFrames) * 1000, mediaPipe.delegateName))
+        perfFrames = 0
+        perfBusy = 0
+        perfSince = now
     }
 
     func reset() {
@@ -225,7 +239,6 @@ final class LiDARHandTracker: ObservableObject {
     func setKeyboardActive(_ active: Bool) {
         queue.async { [weak self] in
             guard let self else { return }
-            if active && !self.keyboardActive { self.userAsleep = false }   // new text field: ready to type
             self.keyboardActive = active
             if !active { self.deactivatePointer() }
         }
@@ -328,10 +341,10 @@ final class LiDARHandTracker: ObservableObject {
     }
 
     /// Whether the person's left wrist is clearly above their left elbow (forearm angled up at least
-    /// ~15°). Body pose runs every third frame; unknown (no body, elbow hidden) doesn't block.
+    /// ~15°). Body pose runs every sixth frame; unknown (no body, elbow hidden) doesn't block.
     private func isHandRaised(_ pose: HandPose, in pixelBuffer: CVPixelBuffer, time t: TimeInterval) -> Bool {
         raisedCheckCounter += 1
-        if raisedCheckCounter % 3 == 0 || t - lastRaisedTime > 0.5, let palm = pose.palmCenter {
+        if raisedCheckCounter % 6 == 0 || t - lastRaisedTime > 0.6, let palm = pose.palmCenter {
             let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up, options: [:])
             try? handler.perform([bodyRequest])
             lastRaised = nil
@@ -454,10 +467,7 @@ final class LiDARHandTracker: ObservableObject {
     private func updateTyping(pose: HandPose?, frame: DepthFrame) {
         let t = frame.timestamp
         let awake = isGestureAwake()
-        if awake && !wasAwake { userAsleep = false }    // woken by palm hold (a real transition:
-        wasAwake = awake                                // right after a double pinch, awake lags)
-        let allowed = (keyboardActive && !userAsleep) || awake
-        resolveSinglePinch(now: t, allowed: allowed)
+        let allowed = keyboardActive || awake
 
         guard let pose, let distance = pose.distance,
               let center = pose.palmCenter, let width = pose.palmWidthPixels else {
@@ -477,10 +487,7 @@ final class LiDARHandTracker: ObservableObject {
         steadyFrames += 1
         let turning = updateTurnGate(facing: pose.facing, time: t)
 
-        // Pinches are watched awake or asleep: two quick ones wake or sleep gestures.
-        if detectPinch(pose: pose, width: width, turning: turning, time: t) {
-            registerPinch(at: t)
-        }
+        let pinched = detectPinch(pose: pose, width: width, turning: turning, time: t)
 
         guard allowed else {
             if pointerActive { deactivatePointer() }
@@ -519,11 +526,17 @@ final class LiDARHandTracker: ObservableObject {
         for step in pendingSteps where t - step.time >= stepConfirmDelay { emit(step.gesture) }
         pendingSteps.removeAll { t - $0.time >= stepConfirmDelay }
 
+        // Pinch = Select, straight away.
+        if pinched {
+            press(reason: "pinch", time: t, position: position)
+            return
+        }
+
         // Hold steps while pinching or turning (so a press doesn't fire a stray arrow first), and
         // while the hand is a fist: a fist is neutral, so moving it around does nothing.
         let fist = isFist(pose)
         if fist { pendingSteps.removeAll() }
-        if isPinched || turning || firstPinchTime != nil || fist {
+        if isPinched || turning || fist {
             anchor = position
             return
         }
@@ -593,29 +606,6 @@ final class LiDARHandTracker: ObservableObject {
         pinchArmed = false
         print(String(format: "[TYPE-DEBUG] pinch %@, facing %.2f", pose.pinchGapMeters.map { String(format: "%.1f cm", $0 * 100) } ?? String(format: "%.2f", ratio), pose.facing ?? -9))
         return true
-    }
-
-    /// Two pinches within doublePinchWindow put gestures to sleep (waking is a held-up palm). A
-    /// single pinch is Select, sent once the window passes without a second one.
-    private func registerPinch(at t: TimeInterval) {
-        if let first = firstPinchTime, t - first <= doublePinchWindow {
-            firstPinchTime = nil
-            // Sleeps everything in control: gestures, and keyboard pointing (which needs no wake),
-            // until the palm is held up again.
-            guard isGestureAwake() || (keyboardActive && !userAsleep) else { return }
-            userAsleep = true
-            print("[TYPE-DEBUG] double pinch → sleep")
-            deactivatePointer()
-            DispatchQueue.main.async { [weak self] in self?.onDoublePinch?() }
-        } else {
-            firstPinchTime = t
-        }
-    }
-
-    private func resolveSinglePinch(now t: TimeInterval, allowed: Bool) {
-        guard let first = firstPinchTime, t - first > doublePinchWindow else { return }
-        firstPinchTime = nil
-        if allowed && pointerActive { press(reason: "single pinch", time: t, position: anchor) }
     }
 
     private func press(reason: String, time t: TimeInterval, position: SIMD2<Float>) {
@@ -705,7 +695,6 @@ final class LiDARHandTracker: ObservableObject {
         openFrames = 0
         closedFrames = 0
         pinchArmed = false
-        firstPinchTime = nil
         lastStepTime = time
         DispatchQueue.main.async { [weak self] in self?.isPointerActive = true }
     }
@@ -717,7 +706,6 @@ final class LiDARHandTracker: ObservableObject {
         openFrames = 0
         closedFrames = 0
         pinchArmed = false
-        firstPinchTime = nil
         pendingSteps.removeAll()
         guard pointerActive else { return }
         pointerActive = false

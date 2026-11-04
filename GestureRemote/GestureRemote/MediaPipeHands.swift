@@ -40,8 +40,17 @@ final class MediaPipeHands {
         options.minHandDetectionConfidence = 0.4
         options.minHandPresenceConfidence = 0.4
         options.minTrackingConfidence = 0.4
+        // GPU first (frees the CPU, more frames per second), CPU if the GPU delegate can't start.
+        options.baseOptions.delegate = .GPU
+        if let gpu = try? HandLandmarker(options: options) {
+            landmarker = gpu
+            delegateName = "MediaPipe GPU"
+            return
+        }
+        options.baseOptions.delegate = .CPU
         do {
             landmarker = try HandLandmarker(options: options)
+            delegateName = "MediaPipe CPU"
         } catch {
             print("[Hands] MediaPipe failed to load (\(error.localizedDescription)) — using Apple Vision")
             landmarker = nil
@@ -49,6 +58,7 @@ final class MediaPipeHands {
     }
 
     var isAvailable: Bool { landmarker != nil }
+    private(set) var delegateName = "Apple Vision"
 
     /// Hands in `region` (normalized, Vision coords: bottom-left origin) of the upright frame,
     /// mapped back to full-frame coordinates.

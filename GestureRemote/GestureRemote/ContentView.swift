@@ -406,7 +406,6 @@ struct ContentView: View {
         lidarTracker.isGestureAwake = { gestures.isAwake }
         lidarTracker.onActivity = { gestures.noteActivity() }
         gestures.setLiDARControls(cameraManager.isLiDARActive)
-        lidarTracker.onDoublePinch = { gestures.setAwake(false) }
         lidarTracker.setKeyboardActive(tvRemote.isKeyboardActive)
         let tracker = lidarTracker
         cameraManager.depthFrameHandler = { tracker.process($0) }
