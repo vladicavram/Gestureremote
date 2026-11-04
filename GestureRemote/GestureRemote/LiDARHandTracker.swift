@@ -119,8 +119,10 @@ final class LiDARHandTracker: ObservableObject {
     // Pinch (CardboardXR's PinchSensor): fingertip gap over palm width on camera.
     private let pinchCloseRatio: Float = 0.4
     private let pinchOpenRatio: Float = 0.8
-    private let pinchCloseMeters: Float = 0.025
-    private let pinchOpenMeters: Float = 0.045
+    // Measured with MediaPipe at ~2 m: pinched 2.7–3.3 cm (its 3D shape never closes below
+    // ~2.5 cm that far away), open 7–9 cm. CardboardXR's 2.5/4.5 cm is for arm's length.
+    private let pinchCloseMeters: Float = 0.04
+    private let pinchOpenMeters: Float = 0.055
     private let pinchSteadyFrames = 3               // hand seen this many frames before a pinch counts
     // A lowered, relaxed hand rests with thumb near index, which looks like a pinch. A real one is a
     // quick close from an open hand that's held up, palm toward the phone.
@@ -303,6 +305,11 @@ final class LiDARHandTracker: ObservableObject {
             if let chosen, let fingers = fingerShapes(chosen) {
                 let shapes = fingers.map { String(format: "%.0f°/%.1f", $0.angle, $0.reach) }.joined(separator: " ")
                 let hand = chosen.chirality == .left ? "LEFT" : (chosen.chirality == .right ? "RIGHT" : "unknown")
+                let gap2D = chosen.pixelDistance(.thumbTip, .indexTip).flatMap { g in chosen.palmWidthPixels.map { g / $0 } } ?? -1
+                let others = fingers.dropFirst().map(\.reach).reduce(0, +) / 3
+                print(String(format: "[PINCH-DEBUG] gap %@, 2D ratio %.2f, others reach %.2f, open/closed frames %d/%d, armed %@",
+                             chosen.pinchGapMeters.map { String(format: "%.1f cm", $0 * 100) } ?? "n/a", gap2D, others,
+                             openFrames, closedFrames, pinchArmed ? "yes" : "no"))
                 print(String(format: "[HAND-DEBUG] %@ %@ hand %@, %.2f m, open %@, facing %.2f, fingers %@, awake %@",
                              source, hand, raised == false ? "DOWN" : "raised", chosen.distance ?? -1, isOpenPalmPose(chosen) ? "yes" : "no",
                              chosen.facing ?? -9, shapes, isGestureAwake() ? "yes" : "no"))
@@ -546,8 +553,8 @@ final class LiDARHandTracker: ObservableObject {
     /// A deliberate pinch (thumb tip to index tip): fingers clearly open for a few frames, then
     /// clearly closed for a few, palm toward the phone, not turning, not right after a drop.
     private func detectPinch(pose: HandPose, width: Float, turning: Bool, time t: TimeInterval) -> Bool {
-        // With the 3D shape, the fingertip gap in metres (CardboardXR: < 2.5 cm closed, > 4.5 cm
-        // open); otherwise the 2D gap over palm width. `ratio` is on the 2D scale either way.
+        // With the 3D shape, the fingertip gap in metres; otherwise the 2D gap over palm width.
+        // `ratio` is on the 2D scale either way.
         let ratio: Float
         if let meters = pose.pinchGapMeters {
             ratio = meters < pinchCloseMeters ? 0 : (meters > pinchOpenMeters ? 1 : (pinchCloseRatio + pinchOpenRatio) / 2)
