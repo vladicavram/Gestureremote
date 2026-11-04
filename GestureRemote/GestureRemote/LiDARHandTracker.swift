@@ -363,7 +363,7 @@ final class LiDARHandTracker: ObservableObject {
                 guard forearm > 4 else { continue }
                 // The hand is about 0.7 forearm-lengths long, beyond the wrist.
                 let center = CGPoint(x: w.x + (w.x - e.x) * 0.4, y: w.y + (w.y - e.y) * 0.4)
-                let side = forearm * 1.6
+                let side = forearm * 2.2           // MediaPipe's palm detector wants some context
                 let box = CGRect(x: (center.x - side / 2) / imageSize.width, y: (center.y - side / 2) / imageSize.height,
                                  width: side / imageSize.width, height: side / imageSize.height)
                 found.append((squareRegion(around: box, scale: 1, minSide: minTrackingSide, imageSize: imageSize),

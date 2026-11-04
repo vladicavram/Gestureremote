@@ -93,11 +93,11 @@ final class MediaPipeHands {
                 }
             }
 
-            // MediaPipe labels handedness as if the image were mirrored (selfie camera). Our frames
-            // aren't, so its "Left" is the person's right hand.
+            // Checked on device: on our (unmirrored, rear camera) frames MediaPipe's "Left" is the
+            // person's left hand — crops around the body-pose left wrist came back "Left".
             var chirality = VNChirality.unknown
             if index < result.handedness.count, let label = result.handedness[index].first?.categoryName {
-                chirality = label == "Left" ? .right : (label == "Right" ? .left : .unknown)
+                chirality = label == "Left" ? .left : (label == "Right" ? .right : .unknown)
             }
 
             poses.append(HandPose(joints: joints, world: world.isEmpty ? nil : world,
