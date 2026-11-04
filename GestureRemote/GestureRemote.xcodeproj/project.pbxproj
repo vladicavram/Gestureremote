@@ -10,33 +10,41 @@
 		B001 /* GestureRemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A001 /* GestureRemoteApp.swift */; };
 		B002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A002 /* ContentView.swift */; };
 		B003 /* CameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A003 /* CameraManager.swift */; };
-		B004 /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A004 /* CameraPreviewView.swift */; };
 		B005 /* Gesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A005 /* Gesture.swift */; };
 		B006 /* GestureProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A006 /* GestureProcessor.swift */; };
 		B007 /* AppleTVRemote.swift in Sources */ = {isa = PBXBuildFile; fileRef = A007 /* AppleTVRemote.swift */; };
-		B011 /* IPCameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012 /* IPCameraManager.swift */; };
-		B012 /* IPCameraDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013 /* IPCameraDiscovery.swift */; };
-		B013 /* LiDARHandTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* LiDARHandTracker.swift */; };
 		B008 /* LoadingSlidesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A009 /* LoadingSlidesView.swift */; };
 		B009 /* Slides in Resources */ = {isa = PBXBuildFile; fileRef = A010 /* Slides */; };
 		B010 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A011 /* Assets.xcassets */; };
+		B015 /* hand_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = A016 /* hand_landmarker.task */; };
+		B011 /* IPCameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A012 /* IPCameraManager.swift */; };
+		B012 /* IPCameraDiscovery.swift in Sources */ = {isa = PBXBuildFile; fileRef = A013 /* IPCameraDiscovery.swift */; };
+		B013 /* LiDARHandTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* LiDARHandTracker.swift */; };
+		B014 /* HandSkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* HandSkeletonView.swift */; };
+		B016 /* MediaPipeHands.swift in Sources */ = {isa = PBXBuildFile; fileRef = A017 /* MediaPipeHands.swift */; };
+		E9E41D4DDCB4754FD82401E1 /* Pods_GestureRemote.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60CED952D3350722996E111D /* Pods_GestureRemote.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		60CED952D3350722996E111D /* Pods_GestureRemote.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_GestureRemote.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A4B2DE2A9FEE2825D6CFD78 /* Pods-GestureRemote.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GestureRemote.debug.xcconfig"; path = "Target Support Files/Pods-GestureRemote/Pods-GestureRemote.debug.xcconfig"; sourceTree = "<group>"; };
 		A001 /* GestureRemoteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureRemoteApp.swift; sourceTree = "<group>"; };
 		A002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A003 /* CameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraManager.swift; sourceTree = "<group>"; };
-		A004 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
 		A005 /* Gesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gesture.swift; sourceTree = "<group>"; };
 		A006 /* GestureProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GestureProcessor.swift; sourceTree = "<group>"; };
 		A007 /* AppleTVRemote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleTVRemote.swift; sourceTree = "<group>"; };
-		A012 /* IPCameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCameraManager.swift; sourceTree = "<group>"; };
-		A013 /* IPCameraDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCameraDiscovery.swift; sourceTree = "<group>"; };
-		A014 /* LiDARHandTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARHandTracker.swift; sourceTree = "<group>"; };
 		A008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A009 /* LoadingSlidesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingSlidesView.swift; sourceTree = "<group>"; };
 		A010 /* Slides */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Slides; sourceTree = "<group>"; };
 		A011 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A016 /* hand_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = hand_landmarker.task; sourceTree = "<group>"; };
+		A012 /* IPCameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCameraManager.swift; sourceTree = "<group>"; };
+		A013 /* IPCameraDiscovery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPCameraDiscovery.swift; sourceTree = "<group>"; };
+		A014 /* LiDARHandTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARHandTracker.swift; sourceTree = "<group>"; };
+		A015 /* HandSkeletonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandSkeletonView.swift; sourceTree = "<group>"; };
+		A017 /* MediaPipeHands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPipeHands.swift; sourceTree = "<group>"; };
+		E1902E51980DB79A3241238D /* Pods-GestureRemote.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GestureRemote.release.xcconfig"; path = "Target Support Files/Pods-GestureRemote/Pods-GestureRemote.release.xcconfig"; sourceTree = "<group>"; };
 		PROD /* GestureRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GestureRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -45,12 +53,31 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E9E41D4DDCB4754FD82401E1 /* Pods_GestureRemote.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		575888E394B36E382B626654 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				60CED952D3350722996E111D /* Pods_GestureRemote.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		DB2BB18C4BD7FD7F939A47C2 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				7A4B2DE2A9FEE2825D6CFD78 /* Pods-GestureRemote.debug.xcconfig */,
+				E1902E51980DB79A3241238D /* Pods-GestureRemote.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		GRP1 /* GestureRemote */ = {
 			isa = PBXGroup;
 			children = (
@@ -58,7 +85,8 @@
 				A002 /* ContentView.swift */,
 				A009 /* LoadingSlidesView.swift */,
 				A003 /* CameraManager.swift */,
-				A004 /* CameraPreviewView.swift */,
+				A015 /* HandSkeletonView.swift */,
+				A017 /* MediaPipeHands.swift */,
 				A005 /* Gesture.swift */,
 				A006 /* GestureProcessor.swift */,
 				A007 /* AppleTVRemote.swift */,
@@ -67,6 +95,7 @@
 				A014 /* LiDARHandTracker.swift */,
 				A010 /* Slides */,
 				A011 /* Assets.xcassets */,
+				A016 /* hand_landmarker.task */,
 				A008 /* Info.plist */,
 			);
 			path = GestureRemote;
@@ -85,6 +114,8 @@
 			children = (
 				GRP1 /* GestureRemote */,
 				GRP2 /* Products */,
+				DB2BB18C4BD7FD7F939A47C2 /* Pods */,
+				575888E394B36E382B626654 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -95,6 +126,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = CFGL1 /* Build configuration list for PBXNativeTarget "GestureRemote" */;
 			buildPhases = (
+				3E0B431AB6DA299E8AB3C43B /* [CP] Check Pods Manifest.lock */,
 				SRC1 /* Sources */,
 				FW01 /* Frameworks */,
 				RES1 /* Resources */,
@@ -148,12 +180,36 @@
 			files = (
 				B009 /* Slides in Resources */,
 				B010 /* Assets.xcassets in Resources */,
+				B015 /* hand_landmarker.task in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
-
+/* Begin PBXShellScriptBuildPhase section */
+		3E0B431AB6DA299E8AB3C43B /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-GestureRemote-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		SRC1 /* Sources */ = {
@@ -164,7 +220,8 @@
 				B002 /* ContentView.swift in Sources */,
 				B008 /* LoadingSlidesView.swift in Sources */,
 				B003 /* CameraManager.swift in Sources */,
-				B004 /* CameraPreviewView.swift in Sources */,
+				B014 /* HandSkeletonView.swift in Sources */,
+				B016 /* MediaPipeHands.swift in Sources */,
 				B005 /* Gesture.swift in Sources */,
 				B006 /* GestureProcessor.swift in Sources */,
 				B007 /* AppleTVRemote.swift in Sources */,
@@ -292,6 +349,7 @@
 		};
 		CFG03 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7A4B2DE2A9FEE2825D6CFD78 /* Pods-GestureRemote.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -318,6 +376,7 @@
 		};
 		CFG04 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = E1902E51980DB79A3241238D /* Pods-GestureRemote.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

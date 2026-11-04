@@ -68,6 +68,12 @@ private enum OPACK {
                 out += withUnsafeBytes(of: len.littleEndian) { Data($0) }
                 return out + data
             }
+        } else if let array = value as? [Any] {
+            var out = Data()
+            out.append(array.count < 15 ? UInt8(0xD0 + array.count) : 0xDF)
+            for element in array { out += encode(element) }
+            if array.count >= 15 { out.append(0x03) }
+            return out
         } else if let n = value as? Int {
             return encodeInt(n)
         } else if let n = value as? UInt {
@@ -669,6 +675,8 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
     @Published var isPairing = false
     @Published var debugLog: [String] = []
     @Published var needsPIN = false
+    /// True while a text field on the Apple TV is focused (its on-screen keyboard is showing).
+    @Published private(set) var isKeyboardActive = false
 
     // MARK: Private
 
@@ -704,10 +712,13 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
     private let queuedCommandReplayInterval: TimeInterval = 0.14
     private var isFlushingQueuedCommands = false
     private var pointerQueue: [Int] = []
-    private let maxPointerQueue = 4
-    private let pointerPressInterval: TimeInterval = 0.1
+    private let maxPointerQueue = 6
+    private let pointerPressInterval: TimeInterval = 0.07
     private var lastPointerSendDate = Date.distantPast
     private var isDrainingPointerQueue = false
+    private var textInputStartXid: Int?
+    private var keyboardClearWork: DispatchWorkItem?
+    private var sessionEstablishedAt = Date.distantPast
 
     private var connectTimeoutWork: DispatchWorkItem?
     private var pendingResolveService: NetService?
@@ -1659,6 +1670,16 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
         verifyEphemeral = nil; verifySharedBytes = nil
         pendingCredentials = nil; pendingPINCompletion = nil
         isConnected = false; isConnecting = false
+        textInputStartXid = nil
+        // The TV drops the connection every so often and we reconnect within ~1 s; keep the
+        // keyboard state through that so typing isn't interrupted. Cleared only if still down.
+        keyboardClearWork?.cancel()
+        let clear = DispatchWorkItem { [weak self] in
+            guard let self, !self.isConnected else { return }
+            self.setKeyboardActive(false)
+        }
+        keyboardClearWork = clear
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: clear)
         connectedDevice = nil; connectedDeviceName = ""
         isPairing = false; needsPIN = false
         companionState = .idle
@@ -1886,9 +1907,11 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
             handlePairVerifyResponse(tlv: pd)
 
         case CompanionFrameType.eOPACK.rawValue:
-            if let chach = chacha {
-                _ = try? chach.decrypt(payload, aad: header)   // advance recv counter
-            }
+            guard let chach = chacha else { return }
+            // Always decrypt (advances the receive counter), then look at the message.
+            guard let plain = try? chach.decrypt(payload, aad: header),
+                  let message = OPACK.decodeDict(plain) else { return }
+            handleCompanionMessage(message)
 
         case CompanionFrameType.uOPACK.rawValue:
             let opack = OPACK.decodeDict(payload)
@@ -1956,6 +1979,8 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
             lastInboundFrameDate = Date()
             startConnectionMonitor()
             log("Session established -- ready for commands")
+            sessionEstablishedAt = Date()
+            startKeyboardEvents()
             flushQueuedCommandsIfNeeded()
 
         default:
@@ -2222,8 +2247,8 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
         sendHID(command: cmd)
     }
 
-    /// LiDAR pointer / typing path: skips the gesture cooldown, but paces presses so tvOS
-    /// registers each down+up pair. Dropped while disconnected (stale arrows would mistype).
+    /// Finger typing: skips the gesture cooldown, but paces presses so tvOS registers each
+    /// down+up pair. Dropped while disconnected (stale arrows would mistype).
     func sendPointer(gesture: Gesture) {
         guard isConnected, let cmd = hidCommand(for: gesture) else { return }
         // Never drop a Select: that would lose a typed character.
@@ -2247,8 +2272,87 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
         let now = Date()
         lastPointerSendDate = now
         lastCommandDate = now
-        sendHID(command: pointerQueue.removeFirst())
+        sendHID(command: pointerQueue.removeFirst(), releaseAfter: 0.04)
         drainPointerQueue()
+    }
+
+    // MARK: - Keyboard (text input) events
+
+    /// Same sequence pyatv uses: start a remote session, subscribe to text-input events,
+    /// then start text input. The TV then reports _tiStarted/_tiStopped as fields gain/lose focus.
+    private func startKeyboardEvents() {
+        keyboardClearWork?.cancel()
+        sendSystemInfo()
+        sendCompanionMessage("_sessionStart", type: 2, content: [
+            "_srvT": "com.apple.tvremoteservices",
+            "_sid": Int(UInt32.random(in: 1...0x7FFF_FFFF)),
+        ])
+        sendCompanionMessage("_interest", type: 1, content: ["_regEvents": ["_tiStarted", "_tiStopped"]])
+        textInputStartXid = sendCompanionMessage("_tiStart", type: 2, content: [:])
+    }
+
+    /// Identifies this app to the TV, as pyatv does right after pairing. Without it the TV closed
+    /// every session after ~36 s.
+    private func sendSystemInfo() {
+        let defaults = UserDefaults.standard
+        let idsKey = "companion.idsID.v1", pubKey = "companion.pubID.v1"
+        let idsID = defaults.string(forKey: idsKey) ?? UUID().uuidString
+        let pubID = defaults.string(forKey: pubKey) ?? (0..<6).map { _ in String(format: "%02x", UInt8.random(in: 0...255)) }.joined(separator: ":")
+        defaults.set(idsID, forKey: idsKey)
+        defaults.set(pubID, forKey: pubKey)
+
+        var info = utsname()
+        uname(&info)
+        let model = withUnsafeBytes(of: &info.machine) { String(decoding: $0.prefix(while: { $0 != 0 }), as: UTF8.self) }
+
+        sendCompanionMessage("_systemInfo", type: 2, content: [
+            "_bf": 0,
+            "_cf": 512,
+            "_clFl": 128,
+            "_i": String(idsID.replacingOccurrences(of: "-", with: "").prefix(12)).lowercased(),
+            "_idsID": idsID,
+            "_pubID": pubID,
+            "_sf": 256,
+            "_sv": "170.18",
+            "model": model,
+            "name": "GestureRemote",
+        ])
+    }
+
+    /// type: 1 = event, 2 = request. Returns the transaction id.
+    @discardableResult
+    private func sendCompanionMessage(_ identifier: String, type: Int, content: [String: Any]) -> Int {
+        let xid = cmdXid; cmdXid += 1
+        sendEOPACK(["_i": identifier, "_x": xid, "_t": type, "_c": content])
+        return xid
+    }
+
+    private func handleCompanionMessage(_ message: [String: Any]) {
+        let identifier = message["_i"] as? String
+        let content = message["_c"] as? [String: Any]
+        switch identifier {
+        case "_tiStarted":
+            setKeyboardActive(true)
+        case "_tiStopped":
+            setKeyboardActive(false)
+        case nil:
+            // Response to _tiStart carries _tiD when a text field is already focused.
+            if let xid = message["_x"] as? Int, xid == textInputStartXid {
+                textInputStartXid = nil
+                setKeyboardActive(content?["_tiD"] != nil)
+            } else if let error = message["_em"] ?? message["_ec"] {
+                log("<- error response x=\(message["_x"] ?? "?"): \(error)")
+            }
+        default:
+            // Anything else the TV sends; logged to find out why it drops the connection.
+            log("<- \(identifier ?? "?") t=\(message["_t"] ?? "?") keys=\((content ?? [:]).keys.sorted())")
+        }
+    }
+
+    private func setKeyboardActive(_ active: Bool) {
+        guard isKeyboardActive != active else { return }
+        isKeyboardActive = active
+        log("TV keyboard \(active ? "shown" : "hidden")")
     }
 
     private func enqueueHIDCommand(_ command: Int, source: String) {
@@ -2288,13 +2392,14 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
         sendNext()
     }
 
-    private func sendHID(command: Int) {
+    /// Press and release. Pointer steps use a shorter press so they can repeat faster.
+    private func sendHID(command: Int, releaseAfter: TimeInterval = 0.08) {
         let xid1 = cmdXid; cmdXid += 1
         let xid2 = cmdXid; cmdXid += 1
         sendEOPACK(["_i": "_hidC", "_x": xid1, "_t": 2,
                     "_c": ["_hBtS": 1, "_hidC": command] as [String: Any]])
         let capturedXid2 = xid2
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + releaseAfter) { [weak self] in
             self?.sendEOPACK(["_i": "_hidC", "_x": capturedXid2, "_t": 2,
                               "_c": ["_hBtS": 2, "_hidC": command] as [String: Any]])
         }
@@ -2661,6 +2766,9 @@ extension AppleTVRemote {
             scheduleReconnect(reason: "Stream error: \(err)")
 
         case .endEncountered:
+            if companionState == .ready {
+                log(String(format: "TV closed the session after %.1f s", Date().timeIntervalSince(sessionEstablishedAt)))
+            }
             let failingDevice = activeDevice
             let failingEndpoint = activeDevice?.endpoint
             let wasConnectPhase = !streamOpenedSuccessfully

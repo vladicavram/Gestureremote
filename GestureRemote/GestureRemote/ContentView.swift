@@ -8,11 +8,11 @@ struct ContentView: View {
     @StateObject private var tvRemote = AppleTVRemote()
     @StateObject private var ipCameraManager = IPCameraManager()
     @StateObject private var cameraDiscovery = IPCameraDiscovery()
-    @StateObject private var lidarTracker = LiDARHandTracker()
+    // @State, not @StateObject: the tracker publishes often and only the status card should redraw.
+    @State private var lidarTracker = LiDARHandTracker()
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var showDebugLog = false  // hidden by default, toggle with terminal button
-    @State private var hideCameraFeed = false
     @State private var showManualEntry = false
     @State private var manualHost = ""
     @State private var manualPort = "49152"
@@ -23,7 +23,8 @@ struct ContentView: View {
     @State private var showIPCameraEntry = false
     @AppStorage("ipCameraURL") private var savedIPCameraURL = ""
     @State private var ipCameraURLInput = ""
-    @AppStorage("lidarModeEnabled") private var lidarModeEnabled = false
+    // On by default wherever LiDAR mode is supported; the cube turns it off for this session.
+    @State private var lidarModeEnabled = LiDARSupport.isSupported
 
     /// LiDAR mode needs a supported iPhone and the built-in camera.
     private var lidarModeRequested: Bool {
@@ -36,62 +37,41 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Background: device camera or IP camera preview
-            if useIPCamera {
-                Group {
-                    if let frame = ipCameraManager.currentFrame {
-                        Image(uiImage: frame)
-                            .resizable()
-                            .scaledToFit()
-                            .ignoresSafeArea()
-                    } else {
-                        Color.black.ignoresSafeArea()
-                        VStack(spacing: 16) {
-                            if ipCameraManager.isConnecting {
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .scaleEffect(2)
-                                    .tint(.white)
-                                Text("Connecting to IP camera…")
-                                    .font(.headline)
-                                    .foregroundColor(.white.opacity(0.8))
-                            } else if let err = ipCameraManager.errorMessage {
-                                Image(systemName: "network.slash")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.white.opacity(0.6))
-                                Text(err)
-                                    .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 40)
-                            } else {
-                                Image(systemName: "network")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.white.opacity(0.4))
-                                Text("No IP camera connected")
-                                    .font(.headline)
-                                    .foregroundColor(.white.opacity(0.6))
-                            }
-                        }
-                    }
-                }
-            } else {
-                CameraPreviewView(session: cameraManager.session)
-                    .ignoresSafeArea()
-            }
+            // No camera image: black screen with the tracked hand drawn on it.
+            Color.black.ignoresSafeArea()
+            HandSkeletonView(
+                store: gestureProcessor.skeleton,
+                mirrored: cameraManager.useFrontCamera && !cameraManager.isLiDARActive && !useIPCamera,
+                tint: gestureProcessor.isAwake ? .green : .white
+            )
 
-            if hideCameraFeed && cameraManager.sessionRunning && !cameraManager.permissionDenied {
-                Color.black.ignoresSafeArea()
-                VStack(spacing: 10) {
-                    Image(systemName: "eye.slash.fill")
-                        .font(.system(size: 42))
-                        .foregroundColor(.white.opacity(0.85))
-                    Text("Camera Feed Hidden")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    Text("Gestures still work while the camera stays on.")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.7))
+            if useIPCamera && ipCameraManager.currentFrame == nil {
+                VStack(spacing: 16) {
+                    if ipCameraManager.isConnecting {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .scaleEffect(2)
+                            .tint(.white)
+                        Text("Connecting to IP camera…")
+                            .font(.headline)
+                            .foregroundColor(.white.opacity(0.8))
+                    } else if let err = ipCameraManager.errorMessage {
+                        Image(systemName: "network.slash")
+                            .font(.system(size: 48))
+                            .foregroundColor(.white.opacity(0.6))
+                        Text(err)
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 40)
+                    } else {
+                        Image(systemName: "network")
+                            .font(.system(size: 48))
+                            .foregroundColor(.white.opacity(0.4))
+                        Text("No IP camera connected")
+                            .font(.headline)
+                            .foregroundColor(.white.opacity(0.6))
+                    }
                 }
             }
 
@@ -134,7 +114,7 @@ struct ContentView: View {
 
             VStack(spacing: 0) {
                 // Top bar
-                    HStack {
+                    HStack(spacing: 2) {
                     // Large connection status dot
                         connectionDot
 
@@ -144,6 +124,7 @@ struct ContentView: View {
                             NotificationCenter.default.post(name: .showGestureSlides, object: nil)
                         } label: {
                             Image(systemName: "play.rectangle.on.rectangle").foregroundColor(.white)
+                                .topBarButtonFrame()
                         }
 
                         Button {
@@ -161,6 +142,7 @@ struct ContentView: View {
                         } label: {
                             Image(systemName: useIPCamera ? "network.slash" : "network")
                                 .foregroundColor(useIPCamera ? .orange : .white)
+                                .topBarButtonFrame()
                         }
 
                         if LiDARSupport.isSupported {
@@ -169,6 +151,7 @@ struct ContentView: View {
                             } label: {
                                 Image(systemName: lidarModeEnabled ? "cube.transparent.fill" : "cube.transparent")
                                     .foregroundColor(useIPCamera ? .white.opacity(0.3) : (lidarModeEnabled ? .orange : .white))
+                                    .topBarButtonFrame()
                             }
                             .disabled(useIPCamera)
                             .accessibilityLabel(lidarModeEnabled ? "Turn off LiDAR mode" : "Turn on LiDAR mode")
@@ -182,15 +165,9 @@ struct ContentView: View {
                         } label: {
                             Image(systemName: "camera.rotate")
                                 .foregroundColor(useIPCamera || cameraManager.isLiDARActive ? .white.opacity(0.3) : .white)
+                                .topBarButtonFrame()
                         }
                         .disabled(useIPCamera || cameraManager.isLiDARActive)
-
-                        Button {
-                            hideCameraFeed.toggle()
-                        } label: {
-                            Image(systemName: hideCameraFeed ? "eye.slash.fill" : "eye.fill")
-                                .foregroundColor(.white)
-                        }
 
                         // Zoom controls
                         Button {
@@ -198,29 +175,31 @@ struct ContentView: View {
                         } label: {
                             Image(systemName: "minus.magnifyingglass")
                                 .foregroundColor(cameraManager.isLiDARActive ? .white.opacity(0.3) : .white)
+                                .topBarButtonFrame()
                         }
                         .disabled(cameraManager.isLiDARActive)
                         
                         Text(String(format: "%.1f×", cameraManager.zoomFactor))
                             .font(.caption.monospaced())
                             .foregroundColor(.white)
-                            .frame(width: 40)
+                            .frame(width: 34)
                         
                         Button {
                             cameraManager.zoomIn()
                         } label: {
                             Image(systemName: "plus.magnifyingglass")
                                 .foregroundColor(cameraManager.isLiDARActive ? .white.opacity(0.3) : .white)
+                                .topBarButtonFrame()
                         }
                         .disabled(cameraManager.isLiDARActive)
                         
                         Button { showDebugLog.toggle() } label: {
                             Image(systemName: "terminal").foregroundColor(.white)
+                                .topBarButtonFrame()
                         }
 
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 10)
                     .background(Color.clear)
 
                     // Debug log
@@ -354,11 +333,13 @@ struct ContentView: View {
             cameraManager.setLiDARMode(enabled)
             if !enabled { lidarTracker.reset() }
         }
-        .onReceive(cameraManager.depthFramePublisher) { frame in
-            if !useIPCamera {
-                lidarTracker.process(frame)
-            }
+        .onChange(of: cameraManager.isLiDARActive) { _, active in
+            gestureProcessor.setLiDARControls(active)
         }
+        .onChange(of: tvRemote.isKeyboardActive) { _, active in
+            lidarTracker.setKeyboardActive(active)
+        }
+
         .onReceive(cameraManager.sampleBufferPublisher) { buffer in
             if !useIPCamera {
                 gestureProcessor.process(sampleBuffer: buffer)
@@ -416,10 +397,19 @@ struct ContentView: View {
     private func configureLiDARTracker() {
         let gestures = gestureProcessor
         let remote = tvRemote
-        lidarTracker.onHandObservation = { gestures.process(observation: $0) }
+        let camera = cameraManager
+        // Flash on the back: once on wake, twice on sleep.
+        gestures.onAwakeChanged = { awake in camera.pulseTorch(count: awake ? 1 : 2) }
+        gestures.onImmediateGesture = { remote.sendPointer(gesture: $0) }
+        lidarTracker.onHandPose = { gestures.process(pose: $0) }
         lidarTracker.onPointerGesture = { remote.sendPointer(gesture: $0) }
         lidarTracker.isGestureAwake = { gestures.isAwake }
         lidarTracker.onActivity = { gestures.noteActivity() }
+        gestures.setLiDARControls(cameraManager.isLiDARActive)
+        lidarTracker.onDoublePinch = { gestures.setAwake(false) }
+        lidarTracker.setKeyboardActive(tvRemote.isKeyboardActive)
+        let tracker = lidarTracker
+        cameraManager.depthFrameHandler = { tracker.process($0) }
     }
 
     private func stopLiveExperience() {
@@ -462,29 +452,16 @@ struct ContentView: View {
     @ViewBuilder
     private var lidarStatusCard: some View {
         if cameraManager.isLiDARActive && !useIPCamera {
-            HStack(spacing: 10) {
-                Image(systemName: lidarTracker.isPointerActive ? "hand.point.up.left.fill" : "cube.transparent")
-                    .font(.system(size: 20, weight: .bold))
-                VStack(alignment: .leading, spacing: 2) {
-                    if lidarTracker.isPointerActive {
-                        Text("Pointer on")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("Move finger to pick a key · push to press")
-                            .font(.system(size: 12, weight: .semibold))
-                    } else {
-                        Text(lidarTracker.handDistance.map { String(format: "LiDAR · hand %.1f m", $0) } ?? "LiDAR · no hand")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("Raise index finger to point")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                }
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color.orange.opacity(lidarTracker.isPointerActive ? 0.95 : 0.7))
-            .cornerRadius(12)
-            .allowsHitTesting(false)
+            LiDARStatusCard(tracker: lidarTracker, keyboardActive: tvRemote.isKeyboardActive)
+        } else if tvRemote.isKeyboardActive && LiDARSupport.isSupported && !useIPCamera {
+            Text("TV keyboard open · tap the cube to type with your finger")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.orange.opacity(0.8))
+                .cornerRadius(12)
+                .allowsHitTesting(false)
         }
     }
 
@@ -496,7 +473,7 @@ struct ContentView: View {
                     .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.black)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Show palm for 2s")
+                    Text("Hold up your palm")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.black)
                     Text("to wake gestures")
@@ -532,6 +509,51 @@ struct ContentView: View {
             .cornerRadius(12)
             .allowsHitTesting(false)
         }
+    }
+}
+
+// MARK: - Top bar
+
+private extension View {
+    /// Small SF Symbols are only tappable inside the glyph; give each top-bar icon a full tap target.
+    func topBarButtonFrame() -> some View {
+        frame(width: 30, height: 44).contentShape(Rectangle())
+    }
+}
+
+// MARK: - LiDAR Status
+
+/// Observes the tracker on its own so frequent LiDAR updates only redraw this card.
+struct LiDARStatusCard: View {
+    @ObservedObject var tracker: LiDARHandTracker
+    var keyboardActive: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: tracker.isPointerActive ? "hand.point.up.left.fill" : (keyboardActive ? "keyboard" : "cube.transparent"))
+                .font(.system(size: 20, weight: .bold))
+            VStack(alignment: .leading, spacing: 2) {
+                if tracker.isPointerActive {
+                    Text(keyboardActive ? "Typing" : "Pointer")
+                        .font(.system(size: 16, weight: .bold))
+                    Text(keyboardActive ? "Move hand to pick a key · pinch to type" : "Move palm to move · pinch to select")
+                        .font(.system(size: 12, weight: .semibold))
+                } else {
+                    Text(tracker.handDistance.map { String(format: "LiDAR + camera · hand %.1f m", $0) } ?? "LiDAR + camera")
+                        .font(.system(size: 16, weight: .bold))
+                    Text(keyboardActive
+                         ? "TV keyboard open · open palm to point, pinch to type"
+                         : (tracker.handDistance == nil ? "Looking for the nearest hand" : "Tracking nearest hand"))
+                        .font(.system(size: 12, weight: .semibold))
+                }
+            }
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.orange.opacity(tracker.isPointerActive ? 0.95 : 0.8))
+        .cornerRadius(12)
+        .allowsHitTesting(false)
     }
 }
 

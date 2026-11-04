@@ -1,5 +1,21 @@
 platform :ios, '17.0'
 
 target 'GestureRemote' do
-  use_frameworks! :linkage => :dynamic
+  use_frameworks!
+  # Hand landmarker with 3D hand shape (world landmarks), used in LiDAR mode.
+  pod 'MediaPipeTasksVision', '0.10.33'
+end
+
+# MediaPipe 0.10.33's xcframework Info.plists describe static libraries (X.a + Headers) but the
+# slices are framework folders. CocoaPods trusts the plist and links them as libraries, so Swift
+# can't `import MediaPipeTasksVision`. Point the plists at the frameworks before installing.
+pre_install do |installer|
+  %w[MediaPipeTasksCommon MediaPipeTasksVision].each do |name|
+    plist = File.join(installer.sandbox.root.to_s, name, 'frameworks', "#{name}.xcframework", 'Info.plist')
+    next unless File.exist?(plist)
+    2.times do |i|
+      system('plutil', '-replace', "AvailableLibraries.#{i}.LibraryPath", '-string', "#{name}.framework", plist)
+      system('plutil', '-remove', "AvailableLibraries.#{i}.HeadersPath", plist, err: File::NULL)
+    end
+  end
 end

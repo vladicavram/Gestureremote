@@ -15,7 +15,8 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
     private var depthOutput: AVCaptureDepthDataOutput?
     private var depthSynchronizer: AVCaptureDataOutputSynchronizer?
     private let depthQueue = DispatchQueue(label: "camera.depth.queue", qos: .userInteractive)
-    private let depthFrameSubject = PassthroughSubject<DepthFrame, Never>()
+    /// LiDAR mode frames, delivered on the depth queue. While LiDAR is active, `sampleBufferPublisher` is silent.
+    var depthFrameHandler: ((DepthFrame) -> Void)?
     private var lidarModeRequested = false     // session queue only
     private var lidarHorizontalFOV: Float = 70
     private let sessionQueue = DispatchQueue(label: "camera.session.queue")
@@ -39,14 +40,11 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
     @Published private(set) var isLiDARActive = false
     
     private var captureDevice: AVCaptureDevice?
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    private var rotationObservations: [NSKeyValueObservation] = []
 
     var sampleBufferPublisher: AnyPublisher<CMSampleBuffer, Never> {
         bufferSubject.eraseToAnyPublisher()
-    }
-
-    /// LiDAR mode frames. While LiDAR is active, `sampleBufferPublisher` is silent.
-    var depthFramePublisher: AnyPublisher<DepthFrame, Never> {
-        depthFrameSubject.eraseToAnyPublisher()
     }
 
     private func log(_ msg: String) {
@@ -65,14 +63,8 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
 
         log("init")
         log("restored camera=\(useFrontCamera ? "front" : "back") zoom=\(zoomFactor)")
-        // Enable device orientation events so we can rotate the video output
+        // Device orientation events drive the rotation coordinator's horizon-level angles.
         UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(deviceOrientationDidChange),
-            name: UIDevice.orientationDidChangeNotification,
-            object: nil
-        )
         // Restart camera when app returns to foreground (iOS interrupts session on background)
         NotificationCenter.default.addObserver(
             self,
@@ -105,27 +97,59 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
         NotificationCenter.default.removeObserver(self)
     }
 
-    /// Maps UIDeviceOrientation to the video rotation angle (degrees) that
-    /// produces an upright image in the sample buffer for Vision processing.
-    static func videoAngle(for orientation: UIDeviceOrientation) -> CGFloat? {
-        switch orientation {
-        case .portrait:           return 90
-        case .portraitUpsideDown: return 270
-        case .landscapeLeft:      return 180
-        case .landscapeRight:     return 0
-        default:                  return nil   // face-up/down/unknown — keep current
+    // MARK: - Torch
+
+    /// A short, dim pulse of the back flashlight, so the user can see from across the room that
+    /// their hand was picked up. Back cameras only (the front camera has no torch).
+    /// Level 0.001: the torch only accepts levels above 0, and the hardware rounds this up to its
+    /// dimmest step.
+    func pulseTorch(level: Float = 0.001, duration: TimeInterval = 0.15, count: Int = 1) {
+        sessionQueue.async { [weak self] in
+            guard let self, let device = self.captureDevice,
+                  device.hasTorch, device.isTorchModeSupported(.on) else { return }
+            do {
+                try device.lockForConfiguration()
+                try device.setTorchModeOn(level: level)
+                device.unlockForConfiguration()
+            } catch {
+                return
+            }
+            self.sessionQueue.asyncAfter(deadline: .now() + duration) {
+                guard (try? device.lockForConfiguration()) != nil else { return }
+                device.torchMode = .off
+                device.unlockForConfiguration()
+                if count > 1 {
+                    self.sessionQueue.asyncAfter(deadline: .now() + duration) {
+                        self.pulseTorch(level: level, duration: duration, count: count - 1)
+                    }
+                }
+            }
         }
     }
 
-    @objc private func deviceOrientationDidChange() {
-        guard let angle = Self.videoAngle(for: UIDevice.current.orientation) else { return }
-        sessionQueue.async { [weak self] in
-            guard let self else { return }
-            if let conn = self.videoOutput.connection(with: .video),
-               conn.isVideoRotationAngleSupported(angle) {
-                conn.videoRotationAngle = angle
-            }
+    // MARK: - Rotation
+
+    /// Hard-coded angles ("portrait = 90°") assume a landscape-mounted sensor, which is wrong for
+    /// cameras like the iPhone 17 front camera. The coordinator reports the correct angle per device
+    /// for the frames handed to Vision (upright buffers).
+    private func setUpRotationCoordinator(for device: AVCaptureDevice) {
+        guard Thread.isMainThread else {
+            DispatchQueue.main.async { self.setUpRotationCoordinator(for: device) }
+            return
         }
+        rotationObservations.removeAll()
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: device, previewLayer: nil)
+        rotationCoordinator = coordinator
+
+        rotationObservations.append(coordinator.observe(\.videoRotationAngleForHorizonLevelCapture, options: [.initial, .new]) { [weak self] coordinator, _ in
+            let angle = coordinator.videoRotationAngleForHorizonLevelCapture
+            self?.sessionQueue.async {
+                guard let connection = self?.videoOutput.connection(with: .video),
+                      connection.isVideoRotationAngleSupported(angle) else { return }
+                connection.videoRotationAngle = angle
+            }
+        })
+        log("rotation coordinator for \(device.localizedName): capture \(coordinator.videoRotationAngleForHorizonLevelCapture)°")
     }
 
     @objc private func appDidBecomeActive() {
@@ -395,16 +419,6 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             }
         }
 
-        if let connection = videoOutput.connection(with: .video) {
-            // Use current device orientation; fall back to portrait (90°)
-            let angle = Self.videoAngle(for: UIDevice.current.orientation) ?? 90
-            if connection.isVideoRotationAngleSupported(angle) {
-                connection.videoRotationAngle = angle
-            } else if connection.isVideoOrientationSupported {
-                connection.videoOrientation = .portrait
-            }
-        }
-
         session.commitConfiguration()
         isConfigured = true
         let lidarActive = useLiDAR
@@ -415,11 +429,14 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
         } else {
             applySavedZoom(for: device)
         }
+        setUpRotationCoordinator(for: device)
         log("configured OK")
     }
 
-    /// Picks the largest video format up to 1080p wide that has a Float depth format with the
-    /// same aspect ratio (so depth pixels line up with video pixels), and the sharpest depth for it.
+    /// Picks a video format that has a Float depth format with the same aspect ratio (so depth
+    /// pixels line up with video pixels): sharpest depth first, then the largest video up to
+    /// 1920 wide: a hand 2–3 m away is only a few dozen pixels, and detection runs on crops, so
+    /// the extra resolution costs little.
     private func configureLiDARFormat(_ device: AVCaptureDevice) -> Bool {
         func dimensions(_ format: AVCaptureDevice.Format) -> CMVideoDimensions {
             CMVideoFormatDescriptionGetDimensions(format.formatDescription)
@@ -585,6 +602,6 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             horizontalFieldOfView: lidarHorizontalFOV,
             timestamp: CMSampleBufferGetPresentationTimeStamp(videoData.sampleBuffer).seconds
         )
-        depthFrameSubject.send(frame)
+        depthFrameHandler?(frame)
     }
 }
