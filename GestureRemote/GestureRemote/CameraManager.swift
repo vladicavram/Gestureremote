@@ -468,6 +468,9 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             try device.lockForConfiguration()
             device.activeFormat = best.video
             device.activeDepthDataFormat = best.depth
+            if device.isLowLightBoostSupported {
+                device.automaticallyEnablesLowLightBoostWhenAvailable = true
+            }
             if device.isFocusModeSupported(.continuousAutoFocus) {
                 device.focusMode = .continuousAutoFocus
             }
@@ -600,7 +603,8 @@ final class CameraManager: NSObject, ObservableObject, AVCaptureVideoDataOutputS
             depthMap: depthMap,
             rotationAngle: videoAngle - depthAngle,
             horizontalFieldOfView: lidarHorizontalFOV,
-            timestamp: CMSampleBufferGetPresentationTimeStamp(videoData.sampleBuffer).seconds
+            timestamp: CMSampleBufferGetPresentationTimeStamp(videoData.sampleBuffer).seconds,
+            iso: captureDevice?.iso ?? 0
         )
         depthFrameHandler?(frame)
     }

@@ -49,6 +49,10 @@ struct DepthFrame {
     /// Horizontal field of view across the sensor's native width, in degrees.
     let horizontalFieldOfView: Float
     let timestamp: TimeInterval
+    /// Camera sensitivity; high ISO = a dark room.
+    let iso: Float
+    /// Dark enough that the color image struggles: LiDAR leads the hand search and crops are brightened.
+    var lowLight: Bool { iso >= 800 }
 }
 
 // MARK: - Tracker
@@ -200,6 +204,7 @@ final class LiDARHandTracker: ObservableObject {
         queue.async { [weak self] in
             guard let self else { return }
             let start = CACurrentMediaTime()
+            self.lastISO = frame.iso
             self.handle(frame)
             self.notePerformance(frameTime: CACurrentMediaTime() - start)
             self.busyLock.lock()
@@ -209,6 +214,7 @@ final class LiDARHandTracker: ObservableObject {
     }
 
     private var perfFrames = 0
+    private var lastISO: Float = 0
     private var perfBusy: TimeInterval = 0
     private var perfSince = CACurrentMediaTime()
 
@@ -218,8 +224,8 @@ final class LiDARHandTracker: ObservableObject {
         perfBusy += frameTime
         let now = CACurrentMediaTime()
         guard now - perfSince >= 2 else { return }
-        print(String(format: "[PERF] %.1f fps, %.0f ms per frame (%@)", Double(perfFrames) / (now - perfSince),
-                     perfBusy / Double(perfFrames) * 1000, mediaPipe.delegateName))
+        print(String(format: "[PERF] %.1f fps, %.0f ms per frame (%@), ISO %.0f%@", Double(perfFrames) / (now - perfSince),
+                     perfBusy / Double(perfFrames) * 1000, mediaPipe.delegateName, lastISO, lastISO >= 800 ? " LOW LIGHT" : ""))
         perfFrames = 0
         perfBusy = 0
         perfSince = now
@@ -258,7 +264,15 @@ final class LiDARHandTracker: ObservableObject {
         let trackedRegionBefore = trackedRegion
         if let tracked = trackedRegion {
             regions = [tracked]
+        } else if frame.lowLight, searchNearestNext, let sampler,
+                  let nearest = sampler.nearestObjectRegion(minDepth: minControlDistance, maxDepth: maxControlDistance) {
+            // Dark room: body pose (color image) often finds nobody, but LiDAR still sees the
+            // nearest surface, usually a raised hand in front of the body. Alternates with the
+            // wrist search below.
+            regions = [squareRegion(around: nearest, scale: 1.6, minSide: minTrackingSide, imageSize: imageSize)]
+            searchNearestNext.toggle()
         } else {
+            if frame.lowLight { searchNearestNext.toggle() }
             regions = wristRegions(in: frame.pixelBuffer, imageSize: imageSize)
             if regions.isEmpty {
                 var region = fullFrame
@@ -278,7 +292,7 @@ final class LiDARHandTracker: ObservableObject {
         // One hand at a time: while tracking, only the hand in its own crop is looked for, so a
         // second hand can't take over; searching the full frame, the nearest of two wins.
         handRequest.maximumHandCount = trackedRegionBefore != nil ? 1 : 2
-        let candidates = regions.flatMap { detectHands(in: frame.pixelBuffer, region: $0, imageSize: imageSize) }
+        let candidates = regions.flatMap { detectHands(in: frame.pixelBuffer, region: $0, imageSize: imageSize, brighten: frame.lowLight) }
         for var pose in candidates {
             // Left hand only. Unknown is allowed: Vision can't always tell on a small, far hand.
             if pose.chirality == .right { continue }
@@ -394,9 +408,9 @@ final class LiDARHandTracker: ObservableObject {
     }
 
     /// Runs hand pose on `region` (normalized, Vision coords) and maps joints back to the full frame.
-    private func detectHands(in pixelBuffer: CVPixelBuffer, region: CGRect, imageSize: CGSize) -> [HandPose] {
+    private func detectHands(in pixelBuffer: CVPixelBuffer, region: CGRect, imageSize: CGSize, brighten: Bool = false) -> [HandPose] {
         if mediaPipe.isAvailable {
-            return mediaPipe.detect(in: pixelBuffer, region: region, imageSize: imageSize)
+            return mediaPipe.detect(in: pixelBuffer, region: region, imageSize: imageSize, brighten: brighten)
         }
         let handler: VNImageRequestHandler
         var processed = fullFrame

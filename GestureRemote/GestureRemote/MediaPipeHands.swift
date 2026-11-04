@@ -62,7 +62,8 @@ final class MediaPipeHands {
 
     /// Hands in `region` (normalized, Vision coords: bottom-left origin) of the upright frame,
     /// mapped back to full-frame coordinates.
-    func detect(in pixelBuffer: CVPixelBuffer, region: CGRect, imageSize: CGSize) -> [HandPose] {
+    /// - Parameter brighten: lift a dark crop (+1.5 EV, gamma 0.75) before the model sees it.
+    func detect(in pixelBuffer: CVPixelBuffer, region: CGRect, imageSize: CGSize, brighten: Bool = false) -> [HandPose] {
         guard let landmarker else { return [] }
 
         // Crop (CIImage shares Vision's bottom-left origin) and scale down to at most maxCropSide.
@@ -73,10 +74,15 @@ final class MediaPipeHands {
         let outWidth = Int((crop.width * scale).rounded())
         let outHeight = Int((crop.height * scale).rounded())
         guard let buffer = buffer(width: outWidth, height: outHeight) else { return [] }
-        let image = CIImage(cvPixelBuffer: pixelBuffer)
+        var image = CIImage(cvPixelBuffer: pixelBuffer)
             .cropped(to: crop)
             .transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY))
             .transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        if brighten {
+            image = image
+                .applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: 1.5])
+                .applyingFilter("CIGammaAdjust", parameters: ["inputPower": 0.75])
+        }
         ciContext.render(image, to: buffer, bounds: CGRect(x: 0, y: 0, width: outWidth, height: outHeight), colorSpace: nil)
 
         guard let mpImage = try? MPImage(pixelBuffer: buffer),
