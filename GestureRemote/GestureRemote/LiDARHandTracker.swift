@@ -122,10 +122,11 @@ final class LiDARHandTracker: ObservableObject {
     // Pinch (CardboardXR's PinchSensor): fingertip gap over palm width on camera.
     private let pinchCloseRatio: Float = 0.4
     private let pinchOpenRatio: Float = 0.8
-    // Measured with MediaPipe at ~2 m: pinched 2.7–3.3 cm (its 3D shape never closes below
-    // ~2.5 cm that far away), open 7–9 cm. CardboardXR's 2.5/4.5 cm is for arm's length.
-    private let pinchCloseMeters: Float = 0.04
-    private let pinchOpenMeters: Float = 0.055
+    // Measured with MediaPipe at 1.4–2 m: pinched 2.1–3.8 cm, briefly up to ~4.8 in the dark (its
+    // 3D shape never closes below ~2 cm that far away); open 7–9 cm. CardboardXR's 2.5/4.5 cm is
+    // for arm's length.
+    private let pinchCloseMeters: Float = 0.045
+    private let pinchOpenMeters: Float = 0.06
     private let pinchSteadyFrames = 3               // hand seen this many frames before a pinch counts
     // A lowered, relaxed hand rests with thumb near index, which looks like a pinch. A real one is a
     // quick close from an open hand that's held up, palm toward the phone.
@@ -134,7 +135,9 @@ final class LiDARHandTracker: ObservableObject {
     // frame (measured); a real pinch holds each state for several frames.
     private let pinchStableOpenFrames = 3
     private let pinchStableClosedFrames = 2
-    private let pinchMinOtherReach: CGFloat = 1.25
+    // Other fingers' reach during a pinch: ~1.8 in good light, 0.9–1.5 in the dark (they read
+    // curled); a real fist ~0.6–0.8.
+    private let pinchMinOtherReach: CGFloat = 0.85
     private let pinchMinFacing: Float = 0.3          // a hanging hand is edge-on (≈ 0)
     private let pinchAfterDrop: TimeInterval = 0.4   // no pinch this soon after a fast drop
     private let turnRate: Float = 2                 // facing change per second that means turning over
@@ -184,6 +187,18 @@ final class LiDARHandTracker: ObservableObject {
     private var lastPressTime: TimeInterval = 0
     private var lastStepTime: TimeInterval = 0
     private var lastDiagnosticTick = 0
+    // ✌️ volume
+    private let volumeStep: Float = 0.04             // metres of hand travel per volume step
+    private let volumeStepInterval: TimeInterval = 0.15
+    private let volumeEngageFrames = 4
+    private let volumeReleaseFrames = 4
+    private var volumeActive = false
+    private var volumePoseFrames = 0
+    private var volumeLostFrames = 0
+    private var volumeAnchorY: Float = 0
+    private var lastVolumeStepTime: TimeInterval = 0
+    private var volumeFilter = OneEuroFilter(minCutoff: 1.0, beta: 15)
+    private var pointerNeedsReanchor = false
     private var raisedCheckCounter = 0
     private var lastRaised: Bool?
     private var lastRaisedTime: TimeInterval = 0
@@ -489,6 +504,11 @@ final class LiDARHandTracker: ObservableObject {
             openFrames = 0
             closedFrames = 0
             pendingSteps.removeAll()        // hand gone: it was being lowered, not navigating
+            if volumeActive {
+                volumeActive = false
+                volumeFilter.reset()
+                pointerNeedsReanchor = true
+            }
             if pointerActive {
                 lostFrames += 1
                 if lostFrames >= releaseFramesRequired { deactivatePointer() }
@@ -508,6 +528,12 @@ final class LiDARHandTracker: ObservableObject {
             return
         }
 
+        // ✌️ volume: while awake, two raised fingers moved up/down change the volume. Handled
+        // before the pointer, which pauses meanwhile.
+        if awake, updateVolume(pose: pose, center: center, distance: distance, frame: frame) {
+            return
+        }
+
         // Engage with an open palm; once on, any pose works (pinching bends the index).
         guard pointerActive else {
             let engages = isOpenPalmPose(pose)
@@ -522,6 +548,12 @@ final class LiDARHandTracker: ObservableObject {
         let smoothDistance = filterDistance.filter(distance, at: t)
         let raw = metricPosition(of: center, depth: smoothDistance, frame: frame)
         let position = SIMD2(filterX.filter(raw.x, at: t), filterY.filter(raw.y, at: t))
+        if pointerNeedsReanchor {
+            // Back from volume mode: carry on from where the hand is now, no jump.
+            pointerNeedsReanchor = false
+            anchor = position
+            pendingSteps.removeAll()
+        }
         if let last = lastPosition, t > lastPositionTime {
             let velocity = (position - last) / Float(t - lastPositionTime)
             palmVelocity += (velocity - palmVelocity) * 0.5  // light smoothing
@@ -605,8 +637,8 @@ final class LiDARHandTracker: ObservableObject {
             closedFrames = 0
         }
         isPinched = closedFrames > 0
-        // A fist also brings thumb and index together; in a pinch the other fingers stay relaxed
-        // (reach measured ~0.7–1.1 in a fist, ≥ 1.4 open).
+        // A fist also brings thumb and index together; in a pinch the other fingers stay at least
+        // partly open (see pinchMinOtherReach).
         let othersReach = fingerShapes(pose).map { ($0[1].reach + $0[2].reach + $0[3].reach) / 3 } ?? 0
         let deliberate = pinchArmed
             && othersReach >= pinchMinOtherReach
@@ -642,6 +674,57 @@ final class LiDARHandTracker: ObservableObject {
         }
         if let facing { lastFacing = facing; lastFacingTime = t }
         return t < turningUntil
+    }
+
+    // MARK: - Volume (✌️)
+
+    /// Returns true while in volume mode (the caller then skips the pointer).
+    private func updateVolume(pose: HandPose, center: CGPoint, distance: Float, frame: DepthFrame) -> Bool {
+        let t = frame.timestamp
+        guard isTwoFingerPose(pose) else {
+            volumePoseFrames = 0
+            if volumeActive {
+                volumeLostFrames += 1
+                if volumeLostFrames >= volumeReleaseFrames {
+                    volumeActive = false
+                    pointerNeedsReanchor = true
+                    print("[TYPE-DEBUG] volume mode OFF")
+                }
+                return volumeActive
+            }
+            return false
+        }
+        volumeLostFrames = 0
+        let y = volumeFilter.filter(metricPosition(of: center, depth: distance, frame: frame).y, at: t)
+
+        guard volumeActive else {
+            volumePoseFrames += 1
+            if volumePoseFrames >= volumeEngageFrames {
+                volumeActive = true
+                volumeAnchorY = y
+                lastVolumeStepTime = t
+                pendingSteps.removeAll()
+                print("[TYPE-DEBUG] volume mode ON")
+            }
+            return volumeActive
+        }
+
+        guard t - lastVolumeStepTime >= volumeStepInterval else { return true }
+        let dy = y - volumeAnchorY
+        if abs(dy) >= volumeStep {
+            volumeAnchorY += dy > 0 ? volumeStep : -volumeStep
+            lastVolumeStepTime = t
+            emit(dy > 0 ? .volumeUp : .volumeDown)
+        }
+        return true
+    }
+
+    /// Index and middle raised, ring and little folded (thumb ignored).
+    private func isTwoFingerPose(_ pose: HandPose) -> Bool {
+        guard let f = fingerShapes(pose) else { return false }
+        func extended(_ s: (angle: CGFloat, reach: CGFloat)) -> Bool { s.angle >= extendedAngleThreshold || s.reach >= 1.45 }
+        func folded(_ s: (angle: CGFloat, reach: CGFloat)) -> Bool { s.reach < 1.35 }
+        return extended(f[0]) && extended(f[1]) && folded(f[2]) && folded(f[3])
     }
 
     /// All four fingers folded (reach measured ~0.7–1.1 in a fist, ≥ 1.4 open).

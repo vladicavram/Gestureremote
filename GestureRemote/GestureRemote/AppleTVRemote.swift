@@ -2415,6 +2415,8 @@ final class AppleTVRemote: NSObject, ObservableObject, StreamDelegate {
         case .back:       return 5
         case .select:     return 6
         case .playPause:  return 14
+        case .volumeUp:   return 8     // Siri Remote volume buttons (HDMI-CEC / IR to the TV)
+        case .volumeDown: return 9
         case .none:       return nil
         }
     }

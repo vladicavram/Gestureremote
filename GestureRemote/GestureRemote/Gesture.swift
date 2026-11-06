@@ -11,6 +11,8 @@ enum Gesture: Hashable {
     case back          // thumbs down → go back
     case menu          // palm→fist → menu
     case playPause     // thumbs up → play / pause
+    case volumeUp      // ✌️ moved up
+    case volumeDown    // ✌️ moved down
 
     var displayName: String {
         switch self {
@@ -23,6 +25,8 @@ enum Gesture: Hashable {
         case .back:       return "Back"
         case .menu:       return "Menu"
         case .playPause:  return "Play / Pause"
+        case .volumeUp:   return "Volume +"
+        case .volumeDown: return "Volume −"
         }
     }
 
@@ -37,6 +41,8 @@ enum Gesture: Hashable {
         case .back:       return "arrow.uturn.backward.circle.fill"
         case .menu:       return "list.bullet.circle.fill"
         case .playPause:  return "playpause.fill"
+        case .volumeUp:   return "speaker.plus.fill"
+        case .volumeDown: return "speaker.minus.fill"
         }
     }
 }
