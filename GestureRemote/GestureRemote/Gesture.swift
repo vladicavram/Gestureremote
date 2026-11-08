@@ -1,5 +1,12 @@
 import Foundation
 
+/// Tuning logs: printed in Debug builds only, never built into a release.
+@inline(__always) func debugLog(_ message: @autoclosure () -> String) {
+    #if DEBUG
+    print(message())
+    #endif
+}
+
 /// Gestures the app can recognise and map to Apple TV commands.
 enum Gesture: Hashable {
     case none

@@ -221,7 +221,9 @@ final class LiDARHandTracker: ObservableObject {
             let start = CACurrentMediaTime()
             self.lastISO = frame.iso
             self.handle(frame)
+            #if DEBUG
             self.notePerformance(frameTime: CACurrentMediaTime() - start)
+            #endif
             self.busyLock.lock()
             self.isBusy = false
             self.busyLock.unlock()
@@ -239,7 +241,7 @@ final class LiDARHandTracker: ObservableObject {
         perfBusy += frameTime
         let now = CACurrentMediaTime()
         guard now - perfSince >= 2 else { return }
-        print(String(format: "[PERF] %.1f fps, %.0f ms per frame (%@), ISO %.0f%@", Double(perfFrames) / (now - perfSince),
+        debugLog(String(format: "[PERF] %.1f fps, %.0f ms per frame (%@), ISO %.0f%@", Double(perfFrames) / (now - perfSince),
                      perfBusy / Double(perfFrames) * 1000, mediaPipe.delegateName, lastISO, lastISO >= 800 ? " LOW LIGHT" : ""))
         perfFrames = 0
         perfBusy = 0
@@ -341,6 +343,7 @@ final class LiDARHandTracker: ObservableObject {
         onHandPose?(active)
         updateTyping(pose: active, frame: frame)
 
+        #if DEBUG
         if Int(frame.timestamp * 2) != lastDiagnosticTick {
             lastDiagnosticTick = Int(frame.timestamp * 2)
             let source = trackedRegionBefore != nil ? "tracked" : (regions.count > 0 && regions[0] != fullFrame ? "wrist/near" : "full")
@@ -349,17 +352,18 @@ final class LiDARHandTracker: ObservableObject {
                 let hand = chosen.chirality == .left ? "LEFT" : (chosen.chirality == .right ? "RIGHT" : "unknown")
                 let gap2D = chosen.pixelDistance(.thumbTip, .indexTip).flatMap { g in chosen.palmWidthPixels.map { g / $0 } } ?? -1
                 let others = fingers.dropFirst().map(\.reach).reduce(0, +) / 3
-                print(String(format: "[PINCH-DEBUG] gap %@, 2D ratio %.2f, others reach %.2f, open/closed frames %d/%d, armed %@",
+                debugLog(String(format: "[PINCH-DEBUG] gap %@, 2D ratio %.2f, others reach %.2f, open/closed frames %d/%d, armed %@",
                              chosen.pinchGapMeters.map { String(format: "%.1f cm", $0 * 100) } ?? "n/a", gap2D, others,
                              openFrames, closedFrames, pinchArmed ? "yes" : "no"))
-                print(String(format: "[HAND-DEBUG] %@ %@ hand %@, %.2f m, open %@, facing %.2f, fingers %@, awake %@",
+                debugLog(String(format: "[HAND-DEBUG] %@ %@ hand %@, %.2f m, open %@, facing %.2f, fingers %@, awake %@",
                              source, hand, raised == false ? "DOWN" : "raised", chosen.distance ?? -1, isOpenPalmPose(chosen) ? "yes" : "no",
                              chosen.facing ?? -9, shapes, isGestureAwake() ? "yes" : "no"))
             } else {
                 let seen = candidates.map { $0.chirality == .left ? "L" : ($0.chirality == .right ? "R" : "?") }.joined()
-                print("[HAND-DEBUG] \(source) \(regions.count) region(s), hands seen [\(seen)], none chosen")
+                debugLog("[HAND-DEBUG] \(source) \(regions.count) region(s), hands seen [\(seen)], none chosen")
             }
         }
+        #endif
 
         // 0.1 m steps: publishing every frame's distance would redraw the status card constantly.
         let distance = chosen?.distance.map { ($0 * 10).rounded() / 10 }
@@ -487,7 +491,7 @@ final class LiDARHandTracker: ObservableObject {
         palmSize = min(max(palmSize, palmSizeRange.lowerBound), palmSizeRange.upperBound)
         calibrationReadings += 1
         if calibrationReadings == calibratedAfter {
-            print(String(format: "[TYPE-DEBUG] palm size learned: %.1f cm (hand %.2f m away)", palmSize * 100, lidar))
+            debugLog(String(format: "[TYPE-DEBUG] palm size learned: %.1f cm (hand %.2f m away)", palmSize * 100, lidar))
         }
     }
 
@@ -650,7 +654,7 @@ final class LiDARHandTracker: ObservableObject {
             && !turning
         guard deliberate else { return false }
         pinchArmed = false
-        print(String(format: "[TYPE-DEBUG] pinch %@, facing %.2f", pose.pinchGapMeters.map { String(format: "%.1f cm", $0 * 100) } ?? String(format: "%.2f", ratio), pose.facing ?? -9))
+        debugLog(String(format: "[TYPE-DEBUG] pinch %@, facing %.2f", pose.pinchGapMeters.map { String(format: "%.1f cm", $0 * 100) } ?? String(format: "%.2f", ratio), pose.facing ?? -9))
         return true
     }
 
@@ -661,7 +665,7 @@ final class LiDARHandTracker: ObservableObject {
         pendingSteps.forEach { emit($0.gesture) }
         pendingSteps.removeAll()
         anchor = position
-        print("[TYPE-DEBUG] press (\(reason))")
+        debugLog("[TYPE-DEBUG] press (\(reason))")
         emit(.select)
     }
 
@@ -688,7 +692,7 @@ final class LiDARHandTracker: ObservableObject {
                 if volumeLostFrames >= volumeReleaseFrames {
                     volumeActive = false
                     pointerNeedsReanchor = true
-                    print("[TYPE-DEBUG] volume mode OFF")
+                    debugLog("[TYPE-DEBUG] volume mode OFF")
                 }
                 return volumeActive
             }
@@ -704,7 +708,7 @@ final class LiDARHandTracker: ObservableObject {
                 volumeAnchorY = y
                 lastVolumeStepTime = t
                 pendingSteps.removeAll()
-                print("[TYPE-DEBUG] volume mode ON")
+                debugLog("[TYPE-DEBUG] volume mode ON")
             }
             return volumeActive
         }
@@ -779,7 +783,7 @@ final class LiDARHandTracker: ObservableObject {
 
     private func activatePointer(position: SIMD2<Float>, distance: Float, time: TimeInterval) {
         pointerActive = true
-        print(String(format: "[TYPE-DEBUG] pointer ON at %.2f m (palm %.1f cm, %d LiDAR readings)",
+        debugLog(String(format: "[TYPE-DEBUG] pointer ON at %.2f m (palm %.1f cm, %d LiDAR readings)",
                      distance, palmSize * 100, calibrationReadings))
         filterX.reset(); filterY.reset(); filterDistance.reset()
         lastPosition = nil
@@ -806,7 +810,7 @@ final class LiDARHandTracker: ObservableObject {
         pendingSteps.removeAll()
         guard pointerActive else { return }
         pointerActive = false
-        print("[TYPE-DEBUG] pointer OFF")
+        debugLog("[TYPE-DEBUG] pointer OFF")
         DispatchQueue.main.async { [weak self] in self?.isPointerActive = false }
     }
 

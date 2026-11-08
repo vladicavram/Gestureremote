@@ -279,7 +279,7 @@ final class GestureProcessor: ObservableObject {
             if now.timeIntervalSince(lastFlipTime) >= flipCooldown {
                 lastFlipTime = now
                 lastGestureRecognitionTime = now
-                print("[GESTURE-DEBUG] back (hand flip)")
+                debugLog("[GESTURE-DEBUG] back (hand flip)")
                 DispatchQueue.main.async { [weak self] in self?.onImmediateGesture?(.back) }
             }
             return
@@ -658,7 +658,7 @@ final class GestureProcessor: ObservableObject {
 
     private func wakeRecognition() {
         wakeStillSince = nil
-        print("[WAKE-DEBUG] gestures awake")
+        debugLog("[WAKE-DEBUG] gestures awake")
         isAwake = true
         onAwakeChanged?(true)
         lastGestureRecognitionTime = Date()
