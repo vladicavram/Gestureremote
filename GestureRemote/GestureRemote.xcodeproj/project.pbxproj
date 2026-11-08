@@ -22,6 +22,7 @@
 		B013 /* LiDARHandTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014 /* LiDARHandTracker.swift */; };
 		B014 /* HandSkeletonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A015 /* HandSkeletonView.swift */; };
 		B016 /* MediaPipeHands.swift in Sources */ = {isa = PBXBuildFile; fileRef = A017 /* MediaPipeHands.swift */; };
+		B017 /* Subscription.swift in Sources */ = {isa = PBXBuildFile; fileRef = A018 /* Subscription.swift */; };
 		E9E41D4DDCB4754FD82401E1 /* Pods_GestureRemote.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 60CED952D3350722996E111D /* Pods_GestureRemote.framework */; };
 /* End PBXBuildFile section */
 
@@ -44,6 +45,7 @@
 		A014 /* LiDARHandTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiDARHandTracker.swift; sourceTree = "<group>"; };
 		A015 /* HandSkeletonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandSkeletonView.swift; sourceTree = "<group>"; };
 		A017 /* MediaPipeHands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPipeHands.swift; sourceTree = "<group>"; };
+		A018 /* Subscription.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subscription.swift; sourceTree = "<group>"; };
 		E1902E51980DB79A3241238D /* Pods-GestureRemote.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GestureRemote.release.xcconfig"; path = "Target Support Files/Pods-GestureRemote/Pods-GestureRemote.release.xcconfig"; sourceTree = "<group>"; };
 		PROD /* GestureRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GestureRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -87,6 +89,7 @@
 				A003 /* CameraManager.swift */,
 				A015 /* HandSkeletonView.swift */,
 				A017 /* MediaPipeHands.swift */,
+				A018 /* Subscription.swift */,
 				A005 /* Gesture.swift */,
 				A006 /* GestureProcessor.swift */,
 				A007 /* AppleTVRemote.swift */,
@@ -222,6 +225,7 @@
 				B003 /* CameraManager.swift in Sources */,
 				B014 /* HandSkeletonView.swift in Sources */,
 				B016 /* MediaPipeHands.swift in Sources */,
+				B017 /* Subscription.swift in Sources */,
 				B005 /* Gesture.swift in Sources */,
 				B006 /* GestureProcessor.swift in Sources */,
 				B007 /* AppleTVRemote.swift in Sources */,

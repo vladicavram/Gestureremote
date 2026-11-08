@@ -19,6 +19,7 @@ struct GestureRemoteApp: App {
 
 struct AppRootView: View {
     @AppStorage("hasSeenGestureSlides") private var hasSeenGestureSlides = false
+    @StateObject private var store = SubscriptionManager()
     @State private var showSlides = true
     @State private var loadingSlidesDismissed = false
 
@@ -26,8 +27,20 @@ struct AppRootView: View {
         ZStack {
             // Only initialize heavy managers if slides are dismissed or already seen
             if loadingSlidesDismissed || hasSeenGestureSlides {
-                ContentView()
-                    .transition(.opacity)
+                // Gestures need the subscription (or free trial), unless the app was bought before it.
+                switch store.access {
+                case .subscribed, .grandfathered:
+                    ContentView()
+                        .transition(.opacity)
+                case .locked:
+                    PaywallView(store: store)
+                        .transition(.opacity)
+                case .checking:
+                    ZStack {
+                        Color.black.ignoresSafeArea()
+                        ProgressView().tint(.white)
+                    }
+                }
             }
 
             // Show slides immediately on top
