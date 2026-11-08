@@ -23,12 +23,22 @@ final class SubscriptionManager: ObservableObject {
     @Published private(set) var trialAvailable = false
     @Published private(set) var isPurchasing = false
     @Published var errorMessage: String?
+    private(set) var isPreview = false
 
     var hasAccess: Bool { access == .subscribed || access == .grandfathered }
 
     private var updates: Task<Void, Never>?
 
     init() {
+        #if DEBUG
+        // Screenshot mode for App Review: paywall as customers see it, without the App Store.
+        if ProcessInfo.processInfo.arguments.contains("-paywallPreview") {
+            access = .locked
+            trialAvailable = true
+            isPreview = true
+            return
+        }
+        #endif
         updates = Task { [weak self] in
             for await result in Transaction.updates {
                 if case .verified(let transaction) = result { await transaction.finish() }
@@ -179,7 +189,7 @@ struct PaywallView: View {
                             .background(accent)
                             .clipShape(Capsule())
                         }
-                        .disabled(store.product == nil || store.isPurchasing)
+                        .disabled((store.product == nil && !store.isPreview) || store.isPurchasing)
 
                         Text(store.trialAvailable
                              ? "Free for 3 days, then \(price) per month. Cancel anytime."
