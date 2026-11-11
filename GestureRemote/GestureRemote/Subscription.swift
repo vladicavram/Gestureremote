@@ -171,7 +171,23 @@ struct PaywallView: View {
                     .background(Color.white.opacity(0.06))
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                    VStack(spacing: 10) {
+                    // App Review 3.1.2(c): the billed amount must be the most prominent pricing
+                    // element; the free trial stays smaller and below it.
+                    VStack(spacing: 14) {
+                        VStack(spacing: 2) {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Text(price)
+                                    .font(.system(size: 46, weight: .heavy, design: .rounded))
+                                    .foregroundStyle(.white)
+                                Text("/ month")
+                                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                                    .foregroundStyle(.white)
+                            }
+                            Text("Billed monthly. Auto-renews. Cancel anytime.")
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.75))
+                        }
+
                         Button {
                             Task { await store.purchase() }
                         } label: {
@@ -179,23 +195,24 @@ struct PaywallView: View {
                                 if store.isPurchasing {
                                     ProgressView().tint(.black)
                                 } else {
-                                    Text(store.trialAvailable ? "Start 3-Day Free Trial" : "Subscribe for \(price)/month")
+                                    Text("Subscribe")
                                 }
                             }
                             .font(.system(size: 18, weight: .bold, design: .rounded))
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 17)
+                            .padding(.vertical, 16)
                             .background(accent)
                             .clipShape(Capsule())
                         }
                         .disabled((store.product == nil && !store.isPreview) || store.isPurchasing)
 
-                        Text(store.trialAvailable
-                             ? "Free for 3 days, then \(price) per month. Cancel anytime."
-                             : "\(price) per month. Cancel anytime.")
-                            .font(.system(size: 14, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.white.opacity(0.75))
+                        if store.trialAvailable {
+                            Text("Includes a 3-day free trial for new subscribers. \(price)/month is charged when the trial ends unless you cancel.")
+                                .font(.system(size: 12, weight: .regular, design: .rounded))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .multilineTextAlignment(.center)
+                        }
                     }
 
                     if let error = store.errorMessage {
